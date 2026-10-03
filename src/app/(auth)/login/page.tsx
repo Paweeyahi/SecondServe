@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
@@ -13,6 +13,14 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // /auth/callback sends people here when an email link (e.g. password
+  // reset) was expired or already used.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('error') === 'auth_callback_failed') {
+      setError('ลิงก์ในอีเมลหมดอายุหรือถูกใช้ไปแล้ว กรุณาขอลิงก์ใหม่');
+    }
+  }, []);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -105,6 +113,14 @@ export default function LoginPage() {
                   </button>
                 }
               />
+              <div className="-mt-1 text-right">
+                <Link
+                  href="/forgot-password"
+                  className="text-xs font-medium text-forest-700 hover:text-forest-900 hover:underline"
+                >
+                  ลืมรหัสผ่าน?
+                </Link>
+              </div>
             </CardContent>
 
             <CardFooter className="flex flex-col space-y-3">

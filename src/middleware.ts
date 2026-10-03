@@ -66,7 +66,10 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/account');
   const isRoleRoute = isStoreRoute || isRiderRoute || isAdminRoute;
   const isProtectedRoute = isRoleRoute || isConsumerProtectedRoute;
-  const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/register');
+  const isAuthRoute =
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/register') ||
+    pathname.startsWith('/forgot-password');
   const isSuspendedPage = pathname === '/suspended';
 
   const redirectTo = (path: string) => {

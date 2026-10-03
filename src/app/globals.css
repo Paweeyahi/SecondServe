@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 24, 24, 27;
+  --background-rgb: 255, 255, 255;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: rgb(var(--background-rgb));
+  font-family: var(--font-poppins), var(--font-noto-thai), ui-sans-serif, system-ui, sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-poppins), var(--font-noto-thai), sans-serif;
+}
+
+/* Keep page content (and the footer) clear of the fixed mobile bottom nav. */
+@media (max-width: 767px) {
+  body:has(#mobile-bottom-nav) {
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+  }
+}

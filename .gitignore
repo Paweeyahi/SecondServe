@@ -1,0 +1,22 @@
+# dependencies
+node_modules/
+
+# Next.js build output (.next-verify = verification builds, see next.config.mjs)
+.next/
+.next-*/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# secrets -- never commit (Supabase keys, service-role key)
+.env
+.env*.local
+
+# personal notes that may hold passwords
+planning-docs/รหัส.txt
+
+# misc
+.DS_Store
+*.log
+npm-debug.log*
+*.bak

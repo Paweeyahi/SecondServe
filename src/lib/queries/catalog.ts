@@ -28,21 +28,33 @@ function distanceKm(a: { lat: number; lng: number }, b: { lat: number; lng: numb
   return 2 * 6371 * Math.asin(Math.sqrt(h));
 }
 
-const CATALOG_LIMIT = 60;
+export const CATALOG_PAGE_SIZE = 24;
+/** Distance sorting happens in app code, so it ranks at most this many items. */
+const DISTANCE_SORT_POOL = 500;
 
 /**
- * Public catalog search. RLS (`products_select_public`) already restricts rows to
- * active, in-stock products from verified stores; this only applies user filters.
+ * Public catalog search, one page at a time, plus the total match count.
+ *
+ * Only buyable items are listed -- active, in stock, unexpired, verified
+ * store. RLS alone isn't enough here: a signed-in buyer may also *see*
+ * products from their past orders (products_select_order_related) and a
+ * store sees its own, so without these filters sold-out items leaked in.
  */
 export async function searchCatalog(
-  filters: CatalogFilters
-): Promise<CatalogProduct[]> {
+  filters: CatalogFilters,
+  { page = 1, pageSize = CATALOG_PAGE_SIZE }: { page?: number; pageSize?: number } = {}
+): Promise<{ products: CatalogProduct[]; total: number }> {
   const supabase = createClient();
 
   let query = supabase
     .from('products')
-    .select('*, store:stores(id, name, address, latitude, longitude)')
-    .limit(CATALOG_LIMIT);
+    .select('*, store:stores!inner(id, name, address, latitude, longitude, verified)', {
+      count: 'exact',
+    })
+    .eq('status', 'active')
+    .gt('quantity', 0)
+    .gt('expiry_date', new Date().toISOString())
+    .eq('store.verified', true);
 
   if (filters.category) query = query.eq('category', filters.category);
   if (filters.minPrice != null) query = query.gte('discount_price', filters.minPrice);
@@ -72,16 +84,23 @@ export async function searchCatalog(
   if (filters.sort === 'price') query = query.order('discount_price', { ascending: true });
   else if (filters.sort === 'newest') query = query.order('created_at', { ascending: false });
   else query = query.order('expiry_date', { ascending: true });
-
-  const { data, error } = await query;
-  if (error) console.error('[searchCatalog]', error);
-  const products = (data as CatalogProduct[] | null) ?? [];
+  // Stable tiebreak so items never repeat or vanish between pages.
+  query = query.order('id', { ascending: true });
 
   const near = filters.near;
-  if (filters.sort === 'distance' && near) {
-    // Distance is computed in app code (no PostGIS); the query above already
-    // capped the set at CATALOG_LIMIT soonest-expiring items.
-    return products
+  const byDistance = filters.sort === 'distance' && near;
+  const from = (page - 1) * pageSize;
+
+  const { data, error, count } = byDistance
+    ? await query.limit(DISTANCE_SORT_POOL)
+    : await query.range(from, from + pageSize - 1);
+  if (error) console.error('[searchCatalog]', error);
+  const products = (data as CatalogProduct[] | null) ?? [];
+  const total = count ?? products.length;
+
+  if (byDistance && near) {
+    // No PostGIS: rank the (capped) match set in app code, then slice the page.
+    const ranked = products
       .map((p) => ({
         ...p,
         distanceKm:
@@ -90,8 +109,9 @@ export async function searchCatalog(
             : undefined,
       }))
       .sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
+    return { products: ranked.slice(from, from + pageSize), total: Math.min(total, DISTANCE_SORT_POOL) };
   }
-  return products;
+  return { products, total };
 }
 
 /**

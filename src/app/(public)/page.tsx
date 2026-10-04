@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { ProductCard } from '@/components/consumer/ProductCard';
-import { searchCatalog, sortForDisplay } from '@/lib/queries/catalog';
+import { searchCatalog } from '@/lib/queries/catalog';
 import { getCommunityShareStats, getPublicShares } from '@/lib/queries/shares';
 import { getUserProfile } from '@/lib/actions/auth';
 
@@ -24,14 +24,16 @@ const FEATURED_LIMIT = 8;
 const FEATURED_SHARES_LIMIT = 3;
 
 export default async function HomePage() {
-  const [allProducts, session, shareStats, { shares: availableShares }] = await Promise.all([
-    searchCatalog({ q: '', category: null, minPrice: null, maxPrice: null, exp: null, sort: 'expiry', near: null }),
+  const [{ products: featuredProducts }, session, shareStats, { shares: availableShares }] = await Promise.all([
+    searchCatalog(
+      { q: '', category: null, minPrice: null, maxPrice: null, exp: null, sort: 'expiry', near: null },
+      { pageSize: FEATURED_LIMIT }
+    ),
     getUserProfile(),
     getCommunityShareStats(),
     getPublicShares({ view: 'available', category: null, page: 1 }),
   ]);
   const featuredShares = availableShares.slice(0, FEATURED_SHARES_LIMIT);
-  const featuredProducts = sortForDisplay(allProducts).slice(0, FEATURED_LIMIT);
   const canOrder = session?.profile?.role === 'consumer';
   // Logged-in visitors must not see sign-up/log-in CTAs: /register and /login
   // bounce authenticated users straight back here, so those buttons look dead.

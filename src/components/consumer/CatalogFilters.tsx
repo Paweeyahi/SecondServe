@@ -40,6 +40,8 @@ export function CatalogFilters() {
     (mutate: (params: URLSearchParams) => void) => {
       const params = new URLSearchParams(searchParams.toString());
       mutate(params);
+      // A different filter/sort means a different result set -- start over.
+      params.delete('page');
       const qs = params.toString();
       startTransition(() => {
         router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });

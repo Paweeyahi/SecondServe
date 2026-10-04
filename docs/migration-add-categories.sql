@@ -5,7 +5,7 @@
 -- New: produce (ผักและผลไม้), meat_seafood (เนื้อสัตว์และอาหารทะเล),
 --      dairy (นมและผลิตภัณฑ์นม), frozen (อาหารแช่แข็ง), snacks (ขนมและของหวาน).
 -- Existing keys are unchanged, so no product needs migrating; 'fresh' is
--- only relabelled in the app as "อาหารสดอื่น ๆ".
+-- label in the app stays "อาหารสด".
 -- Keep in sync with PRODUCT_CATEGORIES in src/types/product.ts.
 -- =====================================================================
 

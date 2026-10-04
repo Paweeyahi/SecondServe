@@ -8,7 +8,7 @@ export const PRODUCT_CATEGORIES = {
   produce: 'ผักและผลไม้',
   meat_seafood: 'เนื้อสัตว์และอาหารทะเล',
   dairy: 'นมและผลิตภัณฑ์นม',
-  fresh: 'อาหารสดอื่น ๆ',
+  fresh: 'อาหารสด',
   frozen: 'อาหารแช่แข็ง',
   bakery: 'เบเกอรี่',
   snacks: 'ขนมและของหวาน',

@@ -1,6 +1,6 @@
 import { ShieldCheck } from 'lucide-react';
 import { LegalPage } from '@/components/shared/LegalPage';
-import { DATA_CONTROLLER } from '@/lib/legal';
+import { contactChannel, controllerName } from '@/lib/legal';
 
 export const metadata = { title: 'นโยบายความเป็นส่วนตัว — SecondServe' };
 
@@ -15,9 +15,8 @@ export default function PrivacyPage() {
       <section>
         <h2>1. ผู้ควบคุมข้อมูลส่วนบุคคล</h2>
         <p>
-          {DATA_CONTROLLER.name} (&ldquo;เรา&rdquo;) เป็นผู้ให้บริการแพลตฟอร์ม SecondServe
-          และเป็นผู้ควบคุมข้อมูลส่วนบุคคลตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 (PDPA)
-          ติดต่อเรื่องข้อมูลส่วนบุคคลได้ที่ {DATA_CONTROLLER.email}
+          {controllerName} (&ldquo;เรา&rdquo;) เป็นผู้ควบคุมข้อมูลส่วนบุคคลตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล
+          พ.ศ. 2562 (PDPA) ติดต่อเรื่องข้อมูลส่วนบุคคลได้ที่ {contactChannel}
         </p>
       </section>
 
@@ -76,7 +75,7 @@ export default function PrivacyPage() {
           <li>ถอนความยินยอม (อาจทำให้ใช้บริการบางส่วนไม่ได้)</li>
           <li>ร้องเรียนต่อสำนักงานคณะกรรมการคุ้มครองข้อมูลส่วนบุคคล (สคส.)</li>
         </ul>
-        <p className="mt-2">ใช้สิทธิได้โดยติดต่อ {DATA_CONTROLLER.email}</p>
+        <p className="mt-2">ใช้สิทธิได้โดยติดต่อ {contactChannel}</p>
       </section>
 
       <section>

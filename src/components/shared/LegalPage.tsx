@@ -1,9 +1,8 @@
 import type { ReactNode } from 'react';
-import { AlertTriangle } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { DATA_CONTROLLER, PRIVACY_VERSION } from '@/lib/legal';
+import { PRIVACY_VERSION } from '@/lib/legal';
 
-/** Shared shell for /privacy and /terms: header, placeholder warning, prose. */
+/** Shared shell for /privacy and /terms: header + prose. */
 export function LegalPage({
   title,
   icon,
@@ -13,7 +12,6 @@ export function LegalPage({
   icon: Parameters<typeof PageHeader>[0]['icon'];
   children: ReactNode;
 }) {
-  const unfilled = DATA_CONTROLLER.name.startsWith('[') || DATA_CONTROLLER.email.startsWith('[');
   const updated = new Date(`${PRIVACY_VERSION}T00:00:00Z`).toLocaleDateString('th-TH', {
     dateStyle: 'long',
   });
@@ -21,13 +19,6 @@ export function LegalPage({
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
       <PageHeader icon={icon} title={title} subtitle={`ปรับปรุงล่าสุด ${updated}`} />
-
-      {unfilled && (
-        <p className="flex items-start gap-2 rounded-xl border border-orange-200 bg-orange-50 p-4 text-sm text-orange-900">
-          <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
-          ยังไม่ได้ระบุชื่อผู้ให้บริการและช่องทางติดต่อ (แก้ใน src/lib/legal.ts) — เอกสารนี้ควรได้รับการตรวจทานจากผู้มีความรู้ด้านกฎหมายก่อนเปิดใช้งานจริง
-        </p>
-      )}
 
       <article className="space-y-6 rounded-2xl border border-neutral-200 bg-white p-6 text-sm leading-relaxed text-neutral-700 shadow-sm sm:p-8 [&_h2]:mb-2 [&_h2]:text-base [&_h2]:font-bold [&_h2]:text-forest-900 [&_li]:ml-5 [&_li]:list-disc [&_ul]:space-y-1">
         {children}

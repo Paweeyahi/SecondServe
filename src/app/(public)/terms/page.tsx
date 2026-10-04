@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { FileText } from 'lucide-react';
 import { LegalPage } from '@/components/shared/LegalPage';
-import { DATA_CONTROLLER } from '@/lib/legal';
+import { DATA_CONTROLLER, contactChannel } from '@/lib/legal';
 
 export const metadata = { title: 'ข้อกำหนดการใช้งาน — SecondServe' };
 
@@ -12,7 +12,7 @@ export default function TermsPage() {
         <h2>1. เกี่ยวกับบริการ</h2>
         <p>
           SecondServe เป็นแพลตฟอร์มที่เชื่อมร้านค้า ผู้ซื้อ และไรเดอร์ เพื่อซื้อขายและส่งต่อสินค้าใกล้หมดอายุ
-          ให้บริการโดย {DATA_CONTROLLER.name} การสมัครสมาชิกถือว่าคุณยอมรับข้อกำหนดนี้
+          {DATA_CONTROLLER.name ? ` ให้บริการโดย ${DATA_CONTROLLER.name}` : ''} การสมัครสมาชิกถือว่าคุณยอมรับข้อกำหนดนี้
         </p>
       </section>
 
@@ -65,8 +65,8 @@ export default function TermsPage() {
       <section>
         <h2>7. การเปลี่ยนแปลงข้อกำหนด</h2>
         <p>
-          เราอาจปรับปรุงข้อกำหนดนี้เป็นครั้งคราว โดยจะแจ้งวันที่ปรับปรุงไว้ด้านบนของหน้านี้ หากมีคำถาม ติดต่อ{' '}
-          {DATA_CONTROLLER.email}
+          เราอาจปรับปรุงข้อกำหนดนี้เป็นครั้งคราว โดยจะแจ้งวันที่ปรับปรุงไว้ด้านบนของหน้านี้ หากมีคำถาม
+          ติดต่อ {contactChannel}
         </p>
       </section>
     </LegalPage>

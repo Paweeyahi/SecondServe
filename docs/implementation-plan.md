@@ -1,4 +1,4 @@
-# SecondServe: Implementation Plan (M1–M12)
+# SecondServe: Implementation Plan (M1–M15)
 
 Derived from [`requirements.md`](./requirements.md), [`scope.md`](./scope.md),
 [`architecture.md`](./architecture.md), [`database.md`](./database.md), and the
@@ -44,15 +44,24 @@ authoritative.
 | M1 | Foundation, Auth & Role Routing | all | Req. §1 | ✅ |
 | M2 | Store Profile & Product CRUD | store | Req. §2 | ✅ |
 | M3 | Product Discovery & Catalog | consumer / public | Req. §3 | ✅ |
-| M4 | Cart & Checkout (atomic ordering) | consumer | Req. §4 | 🟡 |
-| M5 | Order Tracking & Realtime Timeline | consumer | Req. §4 | 🟡 |
-| M6 | Store Order Fulfillment | store | Req. §4 | 🟡 |
-| M7 | Rider Delivery Workflow | rider | Req. §5 | 🟡 |
-| M8 | Community Donation / Sharing | store | Req. §6 | 🟡 |
-| M9 | Admin Moderation & Platform Metrics | admin | Req. §7 | 🟡 |
-| M10 | Hardening, RLS Audit & Deployment | all | §8–§10 | 🟡 (RLS consolidation only; rest not started) |
+| M4 | Cart & Checkout (atomic ordering) | consumer | Req. §4 | ✅ |
+| M5 | Order Tracking & Realtime Timeline | consumer | Req. §4 | ✅ |
+| M6 | Store Order Fulfillment | store | Req. §4 | ✅ |
+| M7 | Rider Delivery Workflow | rider | Req. §5 | ✅ |
+| M8 | Community Donation / Sharing | store | Req. §6 | ✅ (extended by M13) |
+| M9 | Admin Moderation & Platform Metrics | admin | Req. §7 | ✅ |
+| M10 | Hardening, RLS Audit & Deployment | all | §8–§10 | 🟡 everything except the Vercel deploy |
 | M11 | Store Reviews & Ratings | consumer / public | added post-MVP, see scope.md | ✅ |
 | M12 | Web Push Notifications | all | added post-MVP, see scope.md | ❌ removed 2026-09-22 |
+| M13 | Community Donations v2 (claims, foundations, auto-cancel) | consumer / store / admin | extends Req. §6 | ✅ |
+| M14 | Dashboards, Catalog & UX | all | post-MVP | ✅ |
+| M15 | Security Audit & Fixes | all | §8 | ✅ (60/60 probes pass) |
+
+M4–M9 were implemented 2026-09-11 and confirmed end to end against the live
+project on 2026-09-16 (store adds product → admin verifies → consumer buys,
+pickup and delivery → store fulfils → rider claims and delivers → consumer
+page updates via Realtime). M13–M15 are summarised under "Post-plan work" at
+the end of this file.
 
 Critical path: **M1 → M2 → M3 → M4 → M5 → M6 → M7**. M8 and M9 depend on M2/M4.
 M10 runs last, but its RLS checklist is updated incrementally as each module lands.
@@ -690,14 +699,14 @@ end to end.
   warning appeared once on `/products`' first (dev-mode, on-demand-compile)
   load and did not reproduce on repeated loads — a known Next.js dev-mode
   first-compile artifact, not a real bug; not worth chasing further.
-  Leaves 3 throwaway auth accounts on the live project
-  (`qa-responsive-consumer/store/rider@test.local`, password
-  `TestPass123!`) — harmless (isolated test data, no real user affected)
-  but safe to delete via Supabase dashboard -> Authentication whenever
-  convenient.
+  The 3 throwaway `qa-responsive-*@test.local` accounts it created were
+  deleted on 2026-10-04 with [`docs/cleanup-test-accounts.sql`](./cleanup-test-accounts.sql).
 - `next build` + `tsc --noEmit` in CI; Vercel project + env vars
-  (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` — the VAPID
-  pair M12 added here is gone along with M12 itself, see its section below)
+  (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+  `NEXT_PUBLIC_SITE_URL` — the VAPID pair M12 added here is gone along with
+  M12 itself) ⬜ **not started** — the only open M10 item. Git was
+  initialised 2026-10-04 (branch `main`); step-by-step deploy notes are in
+  the root [`README.md`](../README.md).
 - Seed script for demo data (one store, products, a consumer, a rider, an admin)
   ✅ **done 2026-09-22** — [`scripts/seed.mjs`](../scripts/seed.mjs)
   (`npm run seed`). Uses the Supabase Admin API (`SUPABASE_SERVICE_ROLE_KEY`,
@@ -712,7 +721,9 @@ end to end.
   code path as a real upload). Idempotent — matches by fixed email/product
   name and skips what already exists, safe to run repeatedly. **Not yet run
   against the live project** (needs the service role key added locally
-  first).
+  first). Since 2026-10-04 the signup trigger ignores `role: admin` in
+  metadata (see M15), so the seed creates `demo-admin` as a consumer and then
+  promotes it with the service-role client.
 
 **RLS consolidation, done ahead of the rest of M10 (2026-09-18):**
 [`docs/rls-policies.sql`](./rls-policies.sql) is now the single reference for
@@ -741,7 +752,8 @@ running it doubles as an audit that no environment is missing a fix):
 **Verification checkpoint**
 1. `npm run build` and `npm run type-check` green in CI.
 2. RLS regression suite: for each role, a scripted attempt to read/write another
-   role's rows fails.
+   role's rows fails. ✅ `npm run audit:security` (`scripts/security-audit.mjs`,
+   60 probes) — 60/60 pass as of 2026-10-04.
 3. Scope check: no Stripe/Omise/wallet, no map/GPS/geocoding, no
    auto-dispatch anywhere in the codebase. (Reviews and the M12 service
    worker are now in scope — see scope.md "Added post-MVP" — so this
@@ -940,3 +952,106 @@ ALTER TABLE public.orders ADD  CONSTRAINT orders_status_check CHECK (
   adding `expiry_date > now()` to both. **Run this against the live project**
   (after m4-m9) — it re-issues the M2 policy and M4 function in place, no new
   objects.
+
+---
+
+## Post-plan work (2026-10-03 → 2026-10-04)
+
+Built after M1–M12, in roughly this order. Every SQL file listed here has
+been **run and confirmed against the live project**, and each is folded into
+[`docs/rls-policies.sql`](./rls-policies.sql) (current audit: 30 policies +
+29 functions).
+
+### M13 — Community Donations v2
+
+M8 only *logged* donations; nobody could actually receive the food.
+
+- **Claims** ([`migration-share-claims.sql`](./migration-share-claims.sql)):
+  `shares.remaining` + `shares.pickup_note`, new `share_claims` table
+  (`reserved → collected | cancelled`), RPCs `claim_share` (consumer-only,
+  1–5 pieces, row-locked so a donation can't be over-allocated, one live claim
+  per person per share), `cancel_share_claim`, `mark_share_collected`,
+  `community_share_stats` (public aggregates). New consumer page `/claims`;
+  the store's shares page lists claimers with collect/cancel actions; nav
+  badge for pending claims. Also fixed: shared products' name/image were
+  hidden from logged-out visitors (`products_select_shared`).
+- **Foundations, no user accounts** ([`migration-foundations.sql`](./migration-foundations.sql)):
+  admin-managed `foundations` table and `/dashboard/admin/foundations`;
+  `share_product(p_product_id, p_pickup_note, p_foundation_id)` can earmark a
+  whole lot for a foundation (`remaining = 0`, so the public claim flow can't
+  touch it); the store confirms hand-over with `mark_foundation_delivered`.
+- **Auto-cancel + product expiry** ([`migration-claim-timeout-and-store-logo.sql`](./migration-claim-timeout-and-store-logo.sql)):
+  `run_expiry_jobs()`, scheduled by **pg_cron every 10 minutes**, cancels
+  reservations older than 24 h or whose food expired
+  (`cancel_reason = 'timeout'`, pieces return to the pool) and flips expired
+  `active` products to `expired`; `update_product()` re-lists an expired item
+  given a future date. Claim pages show the pickup deadline.
+- `/shares` rebuilt (stats, how-it-works, available/history tabs, category
+  chips, pagination, partner foundations) and featured on the home page.
+- Admin overview: donation tiles, top donating stores, totals per foundation.
+
+### M14 — Dashboards, Catalog & UX
+
+- **Store:** sales dashboard on `/dashboard/store` (to-do list, 30-day KPIs
+  vs the previous 30 days, 14-day revenue chart with a table twin, best
+  sellers); orders page as a table with status tabs, inline actions, product
+  photos, 10 per page, cards on phones; logo upload (`stores.logo_url`); "use
+  current location" for store coordinates, with a warning while the
+  Bangkok-centre signup placeholder is still set.
+- **Rider:** Job Pool and history as tables with product photos, 10 per page,
+  total delivery fees earned; cards on phones.
+- **Consumer / public:** product detail page `/products/[id]`; catalog
+  pagination (24 per page, exact totals, buyable-only filter) and "near me"
+  distance sort; countdown expiry badges; savings shown on cards, cart and
+  checkout; thank-you banner after checkout; `/account` profile page with
+  personal impact stats; 10 product categories
+  ([`migration-add-categories.sql`](./migration-add-categories.sql)).
+- **Auth:** forgot / reset password; login returns to the page that sent the
+  user (`?next=`, validated); the home page hides sign-up CTAs when logged in.
+- **Look & feel:** brand palette from the brand concept doc (forest / leaf /
+  orange in `tailwind.config.ts`), Poppins + Noto Sans Thai, `PageHeader` /
+  `SectionTitle`, footer, favicon + Open Graph image, Thai 404/error pages,
+  loading skeletons, mobile bottom navigation.
+
+### M15 — Security Audit & Fixes
+
+`scripts/security-audit.mjs` (`npm run audit:security`) attacks the live
+Supabase API directly as anon / consumer / store / rider. Holes found in this
+period (all fixed and re-verified; final result 60/60):
+
+| # | Hole | Fix |
+|---|------|-----|
+| 1 | Logged-out visitors got `permission denied for function is_admin` on any products/orders/profiles read — the public catalog was empty | [`migration-fix-anon-is-admin.sql`](./migration-fix-anon-is-admin.sql): grant `is_admin()` to `anon` (it returns false for them) |
+| 2 | Anyone could read reviewers' full name **and phone number** | [`migration-fix-reviewer-privacy.sql`](./migration-fix-reviewer-privacy.sql): dropped `profiles_select_reviewer`; names come from `reviewer_names()`, abbreviated ("สมใจ บ.") |
+| 3 | Any logged-in user could set their own `role = 'admin'`, lift their own suspension, or self-verify a store/rider via REST | [`migration-fix-column-privileges.sql`](./migration-fix-column-privileges.sql): column-level grants (only plain profile/store fields are writable) |
+| 4 | Anyone could **sign up as admin** by sending `role: admin` in signup metadata (public API, or our own register form) | [`migration-fix-admin-signup.sql`](./migration-fix-admin-signup.sql): `handle_new_user()` whitelists consumer/store/rider; `SignUpSchema` dropped `admin` |
+| 5 | Any store could overwrite, delete or plant files in another store's image folder | [`migration-fix-storage-and-shared-status.sql`](./migration-fix-storage-and-shared-status.sql): storage writes limited to `products/<owned store id>/` |
+| 6 | A store could set `status = 'shared'` directly, skipping `share_product()` (no donation log, unclaimable) | same file: `products_update_own` can't enter or leave `shared` |
+
+Other fixes from this period:
+
+- **A stale session cookie locked users out** — `middleware.ts` trusted
+  `getSession()` (cookie decode only) while pages verified with `getUser()`,
+  so `/login` bounced back to `/` forever. Middleware now verifies on
+  login/register or when no profile loads, and clears an invalid session.
+- **Product photos over 1 MB failed** — Server Actions' default 1 MB body
+  limit; raised to 6 MB in `next.config.mjs` (the form allows 5 MB).
+- **The catalog leaked sold-out items** to past buyers and store owners (RLS
+  lets them see related rows) — the catalog query now filters to buyable
+  items itself.
+- `npm run build` while `npm run dev` runs overwrites `.next` and blanks every
+  page — verification builds now use `NEXT_DIST_DIR=.next-verify`
+  (`next.config.mjs`).
+
+Throwaway accounts created for testing (`qa-*`, `audit-*@test.local`) are
+removed with [`docs/cleanup-test-accounts.sql`](./cleanup-test-accounts.sql);
+re-run it after every `npm run audit:security`.
+
+### Still open
+
+- **Deploy to Vercel** (M10) — see the root README.
+- Consumers can't cancel their own order yet (stores can).
+- Before real users: custom SMTP and email confirmation back on (signup
+  auto-confirm is currently on), a PDPA privacy notice with consent at signup,
+  and a `CREATE TABLE` file for M1's `profiles` / `stores` / `riders` (today
+  they are only described in `database.md`).

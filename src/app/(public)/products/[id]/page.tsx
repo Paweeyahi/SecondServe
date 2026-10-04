@@ -8,7 +8,6 @@ import {
   MapPin,
   Package,
   Phone,
-  Store as StoreIcon,
   Truck,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
@@ -18,6 +17,7 @@ import { AddToCartButton } from '@/components/consumer/AddToCartButton';
 import { ExpiryBadge } from '@/components/consumer/ExpiryBadge';
 import { ProductCard } from '@/components/consumer/ProductCard';
 import { StarRating } from '@/components/shared/StarRating';
+import { StoreLogo } from '@/components/shared/StoreLogo';
 import { categoryLabel } from '@/types/product';
 import { getUserProfile } from '@/lib/actions/auth';
 import {
@@ -190,7 +190,7 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
                   href={`/stores/${store.id}`}
                   className="flex items-center gap-2 font-semibold text-forest-900 hover:underline"
                 >
-                  <StoreIcon className="h-4 w-4 text-forest-700" />
+                  <StoreLogo name={store.name} logoUrl={store.logo_url} size="sm" />
                   {store.name}
                 </Link>
                 {rating.count > 0 && (

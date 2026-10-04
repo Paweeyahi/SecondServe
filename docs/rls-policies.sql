@@ -410,6 +410,12 @@ begin
     v_status := 'active';
   end if;
 
+  -- run_expiry_jobs() flips stale products to 'expired'; giving one a new
+  -- future expiry date puts it back on sale (or sold_out if no stock).
+  if v_status = 'expired' and p_expiry_date > now() then
+    v_status := case when p_quantity > 0 then 'active' else 'sold_out' end;
+  end if;
+
   update public.products
      set name = p_name,
          category = p_category,
@@ -1224,6 +1230,54 @@ revoke all on function public.community_share_stats() from public;
 grant execute on function public.community_share_stats() to anon, authenticated;
 
 
+-- Expiry job: auto-cancel stale donation claims, expire products.
+-- Scheduled by pg_cron every 10 min. [migration-claim-timeout-and-store-logo.sql]
+create or replace function public.run_expiry_jobs()
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_claims   int;
+  v_products int;
+begin
+  -- 1. Reservations nobody came for: older than 24 h, or the food itself has
+  --    expired. Cancel them and return the pieces to the donation pool.
+  with stale as (
+    update public.share_claims c
+       set status = 'cancelled', resolved_at = now(), cancel_reason = 'timeout'
+      from public.shares s
+      join public.products p on p.id = s.product_id
+     where c.share_id = s.id
+       and c.status = 'reserved'
+       and (c.created_at < now() - interval '24 hours' or p.expiry_date <= now())
+    returning c.share_id, c.quantity
+  ), per_share as (
+    select share_id, sum(quantity)::int as qty from stale group by share_id
+  ), restock as (
+    update public.shares s
+       set remaining = least(s.quantity, s.remaining + ps.qty)
+      from per_share ps
+     where s.id = ps.share_id
+    returning 1
+  )
+  select count(*) into v_claims from stale;
+
+  -- 2. Products past their expiry still marked for sale.
+  update public.products
+     set status = 'expired'
+   where status = 'active' and expiry_date <= now();
+  get diagnostics v_products = row_count;
+
+  return json_build_object('claims_cancelled', v_claims, 'products_expired', v_products);
+end;
+$$;
+
+-- Only pg_cron (running as the database owner) calls this.
+revoke all on function public.run_expiry_jobs() from public, anon, authenticated;
+
+
 -- foundations: admin-managed donation recipients (no user accounts).
 -- [migration-foundations.sql]
 alter table public.foundations enable row level security;
@@ -1616,7 +1670,7 @@ revoke insert, update on public.profiles from anon, authenticated;
 grant update (full_name, phone) on public.profiles to authenticated;
 
 revoke insert, update on public.stores from anon, authenticated;
-grant update (name, address, phone, latitude, longitude, delivery_fee)
+grant update (name, address, phone, latitude, longitude, delivery_fee, logo_url)
   on public.stores to authenticated;
 
 revoke insert, update on public.riders from anon, authenticated;
@@ -1663,7 +1717,7 @@ select 'function', 'public', proname
      'update_product', 'claim_share', 'cancel_share_claim',
      'mark_share_collected', 'community_share_stats',
      'admin_save_foundation', 'mark_foundation_delivered',
-     'reviewer_names'
+     'reviewer_names', 'run_expiry_jobs'
    )
 order by kind, on_table, name;
 -- Expect 27 policy rows + 21 function rows (48 total): 50 after M11/M12,
@@ -1678,4 +1732,6 @@ order by kind, on_table, name;
 -- -> 31 policy rows + 27 function rows (58 total).
 -- migration-fix-reviewer-privacy.sql drops profiles_select_reviewer and
 -- adds reviewer_names() -> 30 policy rows + 28 function rows (58 total).
+-- migration-claim-timeout-and-store-logo.sql adds run_expiry_jobs()
+-- -> 30 policy rows + 29 function rows (59 total).
 -- Cross-check against the section headers above if any are missing.

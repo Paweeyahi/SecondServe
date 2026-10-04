@@ -1,9 +1,10 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { Store as StoreIcon } from 'lucide-react';
+import { } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { categoryLabel } from '@/types/product';
+import { StoreLogo } from '@/components/shared/StoreLogo';
 import { ExpiryBadge } from './ExpiryBadge';
 import { AddToCartButton } from './AddToCartButton';
 import type { CatalogProduct } from '@/lib/queries/catalog';
@@ -83,7 +84,7 @@ export function ProductCard({
             href={`/stores/${product.store.id}`}
             className="flex items-center gap-1 pt-2 text-xs font-medium text-forest-700 underline decoration-forest-300 underline-offset-2 hover:decoration-forest-600"
           >
-            <StoreIcon className="h-3.5 w-3.5" />
+            <StoreLogo name={product.store.name} logoUrl={product.store.logo_url} size="xs" />
             <span className="line-clamp-1">{product.store.name}</span>
             {product.distanceKm != null && (
               <span className="flex-shrink-0 text-neutral-500 no-underline">

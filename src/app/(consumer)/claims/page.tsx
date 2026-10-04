@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { ShareClaimActions } from '@/components/shared/ShareClaimActions';
-import { SHARE_CLAIM_STATUS_LABELS } from '@/types/share';
+import { CLAIM_HOLD_HOURS, SHARE_CLAIM_STATUS_LABELS, claimPickupDeadline } from '@/types/share';
 import { getMyShareClaims } from '@/lib/queries/shares';
 import { PageHeader } from '@/components/ui/PageHeader';
 
@@ -50,8 +50,12 @@ export default async function MyClaimsPage() {
           {claims.map((claim) => {
             const product = claim.share?.product;
             const store = claim.share?.store;
-            const expired =
-              !!product && new Date(product.expiry_date).getTime() <= Date.now();
+            const deadline = claimPickupDeadline(claim.created_at, product?.expiry_date);
+            const overdue = deadline.getTime() <= Date.now();
+            const statusLabel =
+              claim.status === 'cancelled' && claim.cancel_reason === 'timeout'
+                ? 'ยกเลิกอัตโนมัติ (ไม่ได้มารับตามเวลา)'
+                : SHARE_CLAIM_STATUS_LABELS[claim.status];
 
             return (
               <Card key={claim.id}>
@@ -74,7 +78,7 @@ export default async function MyClaimsPage() {
                           {product?.name ?? 'สินค้า'} × {claim.quantity}
                         </p>
                         <Badge variant={STATUS_VARIANT[claim.status]} size="sm" className="flex-shrink-0">
-                          {SHARE_CLAIM_STATUS_LABELS[claim.status]}
+                          {statusLabel}
                         </Badge>
                       </div>
                       {store && (
@@ -104,14 +108,17 @@ export default async function MyClaimsPage() {
                           {store.phone}
                         </p>
                       )}
-                      {product?.expiry_date && (
-                        <p
-                          className={`flex items-center gap-1.5 ${expired ? 'font-medium text-red-600' : ''}`}
-                        >
-                          <CalendarClock className="h-3.5 w-3.5" />
-                          {expired ? 'เลยเวลารับแล้ว' : 'รับได้ถึง'} {formatDate(product.expiry_date)}
-                        </p>
-                      )}
+                      <p
+                        className={`flex items-center gap-1.5 font-medium ${overdue ? 'text-red-600' : 'text-orange-700'}`}
+                      >
+                        <CalendarClock className="h-3.5 w-3.5" />
+                        {overdue
+                          ? 'เลยเวลารับแล้ว ระบบจะยกเลิกการจองเร็ว ๆ นี้'
+                          : `ต้องมารับภายใน ${formatDate(deadline.toISOString())}`}
+                      </p>
+                      <p className="text-[11px] text-neutral-500">
+                        ถ้าไม่มารับภายใน {CLAIM_HOLD_HOURS} ชม. หรือก่อนสินค้าหมดอายุ การจองจะถูกยกเลิกอัตโนมัติ
+                      </p>
                       {claim.share?.pickup_note && (
                         <p className="flex items-start gap-1.5 text-amber-900">
                           <StickyNote className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />

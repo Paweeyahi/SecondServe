@@ -11,7 +11,7 @@ type StoreRow = Database['public']['Tables']['stores']['Row'];
 export type CatalogProduct = ProductRow & {
   store:
     | (Pick<StoreRow, 'id' | 'name' | 'address'> &
-        Partial<Pick<StoreRow, 'latitude' | 'longitude'>>)
+        Partial<Pick<StoreRow, 'latitude' | 'longitude' | 'logo_url'>>)
     | null;
   /** Straight-line distance to the visitor, set only when sorting by distance. */
   distanceKm?: number;
@@ -48,7 +48,7 @@ export async function searchCatalog(
 
   let query = supabase
     .from('products')
-    .select('*, store:stores!inner(id, name, address, latitude, longitude, verified)', {
+    .select('*, store:stores!inner(id, name, address, latitude, longitude, verified, logo_url)', {
       count: 'exact',
     })
     .eq('status', 'active')
@@ -134,7 +134,10 @@ export function sortForDisplay<
 }
 
 export type ProductDetail = ProductRow & {
-  store: Pick<StoreRow, 'id' | 'name' | 'address' | 'phone' | 'delivery_fee' | 'verified'> | null;
+  store: Pick<
+    StoreRow,
+    'id' | 'name' | 'address' | 'phone' | 'delivery_fee' | 'verified' | 'logo_url'
+  > | null;
 };
 
 /**
@@ -146,7 +149,7 @@ export async function getProductDetail(productId: string): Promise<ProductDetail
   const supabase = createClient();
   const { data, error } = await supabase
     .from('products')
-    .select('*, store:stores(id, name, address, phone, delivery_fee, verified)')
+    .select('*, store:stores(id, name, address, phone, delivery_fee, verified, logo_url)')
     .eq('id', productId)
     .maybeSingle()
     .returns<ProductDetail>();

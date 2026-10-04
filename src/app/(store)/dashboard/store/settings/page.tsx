@@ -1,6 +1,7 @@
 import { AlertCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/Card';
 import { StoreProfileForm } from '@/components/store/StoreProfileForm';
+import { StoreLogoForm } from '@/components/store/StoreLogoForm';
 import { getCurrentStore } from '@/lib/queries/store';
 import { SectionTitle } from '@/components/ui/PageHeader';
 
@@ -21,6 +22,7 @@ export default async function StoreSettingsPage() {
   return (
     <div className="space-y-4">
       <SectionTitle>ตั้งค่าร้านค้า</SectionTitle>
+      <StoreLogoForm name={store.name} logoUrl={store.logo_url} />
       <StoreProfileForm store={store} />
     </div>
   );

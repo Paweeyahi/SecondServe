@@ -76,3 +76,47 @@ export async function getStoreSalesReport(): Promise<StoreSalesRow[]> {
   if (error || !data) return [];
   return data as unknown as StoreSalesRow[];
 }
+
+export interface DonationOverview {
+  claims: { reserved: number; collected: number; cancelled: number; timedOut: number };
+  topStores: { storeId: string; name: string; quantity: number; donations: number }[];
+}
+
+/**
+ * Admin-only donation figures not covered by the public community stats:
+ * claim outcomes (share_claims is readable by admins via
+ * share_claims_select_related) and the most generous stores.
+ */
+export async function getDonationOverview(): Promise<DonationOverview> {
+  const supabase = createClient();
+  const [claimsRes, sharesRes] = await Promise.all([
+    supabase.from('share_claims').select('status, cancel_reason, quantity'),
+    supabase
+      .from('shares')
+      .select('store_id, quantity, store:stores(name)')
+      .returns<{ store_id: string; quantity: number; store: { name: string } | null }[]>(),
+  ]);
+
+  const claims = { reserved: 0, collected: 0, cancelled: 0, timedOut: 0 };
+  for (const c of claimsRes.data ?? []) {
+    if (c.status === 'reserved') claims.reserved += c.quantity;
+    else if (c.status === 'collected') claims.collected += c.quantity;
+    else {
+      claims.cancelled += c.quantity;
+      if (c.cancel_reason === 'timeout') claims.timedOut += c.quantity;
+    }
+  }
+
+  const byStore = new Map<string, { name: string; quantity: number; donations: number }>();
+  for (const s of sharesRes.data ?? []) {
+    const entry = byStore.get(s.store_id) ?? { name: s.store?.name ?? 'ร้านค้า', quantity: 0, donations: 0 };
+    entry.quantity += s.quantity;
+    entry.donations += 1;
+    byStore.set(s.store_id, entry);
+  }
+  const topStores = Array.from(byStore, ([storeId, v]) => ({ storeId, ...v }))
+    .sort((a, b) => b.quantity - a.quantity)
+    .slice(0, 5);
+
+  return { claims, topStores };
+}

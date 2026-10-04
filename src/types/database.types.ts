@@ -47,6 +47,7 @@ export interface Database {
           phone: string;
           delivery_fee: number;
           verified: boolean;
+          logo_url: string | null;
           created_at: string;
         };
         Insert: {
@@ -59,6 +60,7 @@ export interface Database {
           phone: string;
           delivery_fee?: number;
           verified?: boolean;
+          logo_url?: string | null;
           created_at?: string;
         };
         Update: {
@@ -71,6 +73,7 @@ export interface Database {
           phone?: string;
           delivery_fee?: number;
           verified?: boolean;
+          logo_url?: string | null;
           created_at?: string;
         };
         Relationships: [];
@@ -282,6 +285,7 @@ export interface Database {
           status: 'reserved' | 'collected' | 'cancelled';
           created_at: string;
           resolved_at: string | null;
+          cancel_reason: 'timeout' | null;
         };
         Insert: {
           id?: string;
@@ -291,6 +295,7 @@ export interface Database {
           status?: 'reserved' | 'collected' | 'cancelled';
           created_at?: string;
           resolved_at?: string | null;
+          cancel_reason?: 'timeout' | null;
         };
         Update: {
           id?: string;
@@ -300,6 +305,7 @@ export interface Database {
           status?: 'reserved' | 'collected' | 'cancelled';
           created_at?: string;
           resolved_at?: string | null;
+          cancel_reason?: 'timeout' | null;
         };
         Relationships: [];
       };

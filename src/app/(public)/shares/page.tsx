@@ -59,7 +59,7 @@ function isClaimable(share: PublicShare): boolean {
 const STEPS = [
   { icon: Store, title: 'ร้านค้าส่งต่อ', body: 'ร้านในเครือข่ายแบ่งสินค้าใกล้หมดอายุที่ยังดีอยู่ให้ชุมชนฟรี' },
   { icon: HandHeart, title: 'กดขอรับ', body: 'เข้าสู่ระบบแล้วจองได้คนละไม่เกิน 5 ชิ้นต่อรายการ' },
-  { icon: PackageCheck, title: 'ไปรับที่ร้าน', body: 'แจ้งชื่อกับร้านก่อนสินค้าหมดอายุ ร้านจะยืนยันว่ารับแล้ว' },
+  { icon: PackageCheck, title: 'ไปรับที่ร้าน', body: 'ไปรับภายใน 24 ชม. แจ้งชื่อกับร้าน ร้านจะยืนยันว่ารับแล้ว ถ้าไม่มารับ การจองจะยกเลิกเอง' },
 ];
 
 export default async function PublicSharesPage({

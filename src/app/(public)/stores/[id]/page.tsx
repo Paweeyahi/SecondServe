@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { MapPin, Phone, Truck } from 'lucide-react';
 import { ProductCard } from '@/components/consumer/ProductCard';
 import { StarRating } from '@/components/shared/StarRating';
+import { StoreLogo } from '@/components/shared/StoreLogo';
 import { getPublicStore, getStorePublicProducts, sortForDisplay } from '@/lib/queries/catalog';
 import type { CatalogProduct } from '@/lib/queries/catalog';
 import { getUserProfile } from '@/lib/actions/auth';
@@ -36,7 +37,10 @@ export default async function StorePublicPage({
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
       <div className="space-y-2 border-b border-neutral-200 pb-5">
-        <h1 className="text-2xl font-bold text-neutral-900">{store.name}</h1>
+        <div className="flex items-center gap-3">
+          <StoreLogo name={store.name} logoUrl={store.logo_url} size="lg" />
+          <h1 className="text-2xl font-bold text-forest-900">{store.name}</h1>
+        </div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-neutral-500">
           <span className="flex items-center gap-1">
             <MapPin className="h-4 w-4" /> {store.address}

@@ -12,7 +12,7 @@ import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { ShareClaimActions } from '@/components/shared/ShareClaimActions';
 import { FoundationDeliveredButton } from '@/components/store/FoundationDeliveredButton';
-import { SHARE_CLAIM_STATUS_LABELS } from '@/types/share';
+import { SHARE_CLAIM_STATUS_LABELS, claimPickupDeadline } from '@/types/share';
 import { getCurrentStore } from '@/lib/queries/store';
 import { getStoreShares } from '@/lib/queries/shares';
 import { SectionTitle } from '@/components/ui/PageHeader';
@@ -183,13 +183,23 @@ export default async function StoreSharesPage() {
                               </span>
                             )}
                             <span>จองเมื่อ {formatDate(claim.created_at)}</span>
+                            {claim.status === 'reserved' && (
+                              <span className="font-medium text-orange-700">
+                                · ยกเลิกอัตโนมัติ{' '}
+                                {formatDate(
+                                  claimPickupDeadline(claim.created_at, share.product?.expiry_date).toISOString()
+                                )}
+                              </span>
+                            )}
                           </p>
                         </div>
                         {claim.status === 'reserved' ? (
                           <ShareClaimActions claimId={claim.id} mode="store" />
                         ) : (
                           <Badge variant={STATUS_VARIANT[claim.status]} size="sm">
-                            {SHARE_CLAIM_STATUS_LABELS[claim.status]}
+                            {claim.cancel_reason === 'timeout'
+                              ? 'ยกเลิกอัตโนมัติ (ไม่มารับ)'
+                              : SHARE_CLAIM_STATUS_LABELS[claim.status]}
                           </Badge>
                         )}
                       </li>

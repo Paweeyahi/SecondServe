@@ -9,7 +9,7 @@ type ShareClaimRow = Database['public']['Tables']['share_claims']['Row'];
 
 export type StoreShareClaim = Pick<
   ShareClaimRow,
-  'id' | 'quantity' | 'status' | 'created_at' | 'resolved_at'
+  'id' | 'quantity' | 'status' | 'created_at' | 'resolved_at' | 'cancel_reason'
 > & {
   claimer: { full_name: string; phone: string } | null;
 };
@@ -59,7 +59,7 @@ export async function getStoreShares(storeId: string): Promise<StoreShare[]> {
   const { data } = await supabase
     .from('shares')
     .select(
-      '*, product:products(name, image_url, expiry_date), foundation:foundations(id, name, address, phone), claims:share_claims(id, quantity, status, created_at, resolved_at, claimer:profiles(full_name, phone))'
+      '*, product:products(name, image_url, expiry_date), foundation:foundations(id, name, address, phone), claims:share_claims(id, quantity, status, created_at, resolved_at, cancel_reason, claimer:profiles(full_name, phone))'
     )
     .eq('store_id', storeId)
     .order('created_at', { ascending: false })

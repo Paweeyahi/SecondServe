@@ -10,11 +10,14 @@ export function PageHeader({
   title,
   subtitle,
   icon: Icon,
+  avatar,
   children,
 }: {
   title: ReactNode;
   subtitle?: ReactNode;
   icon?: LucideIcon;
+  /** Custom leading visual (e.g. a store logo); replaces `icon`. */
+  avatar?: ReactNode;
   /** Optional right-side slot (buttons, badges). */
   children?: ReactNode;
 }) {
@@ -27,11 +30,12 @@ export function PageHeader({
       />
       <div className="relative flex flex-wrap items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
-          {Icon && (
-            <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/20">
-              <Icon className="h-5 w-5" />
-            </div>
-          )}
+          {avatar ??
+            (Icon && (
+              <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/20">
+                <Icon className="h-5 w-5" />
+              </div>
+            ))}
           <div className="min-w-0">
             <h1 className="truncate text-xl font-bold leading-tight sm:text-2xl">{title}</h1>
             {subtitle && <p className="mt-0.5 text-sm text-forest-100">{subtitle}</p>}

@@ -5,6 +5,7 @@ import { getPendingOrderCount } from '@/lib/queries/store-orders';
 import { getReservedClaimCount } from '@/lib/queries/shares';
 import { StoreNav } from '@/components/store/StoreNav';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { StoreLogo } from '@/components/shared/StoreLogo';
 import { Store } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -33,6 +34,11 @@ export default async function StoreDashboardLayout({
       <div className="mb-4">
         <PageHeader
           icon={Store}
+          avatar={
+            store?.logo_url ? (
+              <StoreLogo name={store.name} logoUrl={store.logo_url} size="md" className="ring-2 ring-white/40" />
+            ) : undefined
+          }
           title={store?.name ?? 'ร้านค้าของฉัน'}
           subtitle="ศูนย์จัดการสินค้าใกล้หมดอายุ"
         />

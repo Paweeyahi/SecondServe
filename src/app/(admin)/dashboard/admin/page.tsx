@@ -1,12 +1,29 @@
+import Link from 'next/link';
 import { Bike, HeartHandshake, Package, Store, Users } from 'lucide-react';
 import { MetricCard } from '@/components/admin/MetricCard';
-import { getPlatformMetrics } from '@/lib/queries/admin';
+import { getDonationOverview, getPlatformMetrics } from '@/lib/queries/admin';
+import { getCommunityShareStats } from '@/lib/queries/shares';
+import { SectionTitle } from '@/components/ui/PageHeader';
 import { ORDER_STATUS_LABELS, type OrderStatus } from '@/types/order';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminDashboardPage() {
-  const metrics = await getPlatformMetrics();
+  const [metrics, shareStats, donations] = await Promise.all([
+    getPlatformMetrics(),
+    getCommunityShareStats(),
+    getDonationOverview(),
+  ]);
+  const donationTiles = [
+    { label: 'ส่งต่อทั้งหมด', value: shareStats.totalQuantity, tone: 'text-forest-900' },
+    { label: 'ผู้รับมารับแล้ว', value: donations.claims.collected, tone: 'text-forest-800' },
+    { label: 'ส่งถึงมูลนิธิแล้ว', value: shareStats.foundationDeliveredQuantity, tone: 'text-forest-800' },
+    { label: 'รอผู้รับมารับ', value: donations.claims.reserved, tone: 'text-orange-600' },
+    { label: 'ยกเลิกเพราะไม่มารับ', value: donations.claims.timedOut, tone: 'text-red-600' },
+    { label: 'ยังเปิดให้ขอรับ', value: shareStats.availableQuantity, tone: 'text-forest-800' },
+  ];
+  const maxStoreQty = Math.max(...donations.topStores.map((s) => s.quantity), 1);
+  const maxFoundationQty = Math.max(...shareStats.foundations.map((f) => f.deliveredQuantity), 1);
 
   const foodWasteDiverted =
     (metrics?.shares_quantity_total ?? 0) + (metrics?.delivered_items_quantity_total ?? 0);
@@ -67,6 +84,86 @@ export default async function AdminDashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Donations */}
+      <section className="space-y-4">
+        <SectionTitle subtitle="หน่วยเป็นชิ้น รวมทั้งการแบ่งปันให้ชุมชนและการมอบให้มูลนิธิ">
+          การบริจาคและส่งต่ออาหาร
+        </SectionTitle>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          {donationTiles.map((t) => (
+            <div key={t.label} className="rounded-2xl border border-neutral-200 bg-white p-4 text-center shadow-sm">
+              <p className={`text-2xl font-extrabold ${t.tone}`}>{t.value.toLocaleString()}</p>
+              <p className="mt-0.5 text-xs text-neutral-500">{t.label}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+            <h3 className="mb-4 text-sm font-semibold text-neutral-900">ร้านที่ส่งต่ออาหารมากที่สุด</h3>
+            {donations.topStores.length === 0 ? (
+              <p className="text-sm text-neutral-500">ยังไม่มีการส่งต่อ</p>
+            ) : (
+              <ol className="space-y-3">
+                {donations.topStores.map((st, i) => (
+                  <li key={st.storeId} className="space-y-1">
+                    <div className="flex items-center justify-between gap-2 text-sm">
+                      <span className="min-w-0 truncate text-neutral-800">
+                        <span className="mr-1.5 text-neutral-400">{i + 1}.</span>
+                        {st.name}
+                      </span>
+                      <span className="flex-shrink-0 text-neutral-600">
+                        {st.quantity.toLocaleString()} ชิ้น · {st.donations} ครั้ง
+                      </span>
+                    </div>
+                    <div className="h-2 w-full rounded-full bg-neutral-100">
+                      <div
+                        className="h-2 rounded-full"
+                        style={{ width: `${(st.quantity / maxStoreQty) * 100}%`, backgroundColor: '#2a78d6' }}
+                      />
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+            <div className="mb-4 flex items-center justify-between gap-2">
+              <h3 className="text-sm font-semibold text-neutral-900">มูลนิธิที่ได้รับ (ที่เปิดรับอยู่)</h3>
+              <Link href="/dashboard/admin/foundations" className="text-xs font-medium text-forest-800 hover:underline">
+                จัดการมูลนิธิ
+              </Link>
+            </div>
+            {shareStats.foundations.length === 0 ? (
+              <p className="text-sm text-neutral-500">ยังไม่มีมูลนิธิในระบบ</p>
+            ) : (
+              <ul className="space-y-3">
+                {shareStats.foundations.map((f) => (
+                  <li key={f.id} className="space-y-1">
+                    <div className="flex items-center justify-between gap-2 text-sm">
+                      <span className="min-w-0 truncate text-neutral-800">{f.name}</span>
+                      <span className="flex-shrink-0 text-neutral-600">
+                        {f.deliveredQuantity.toLocaleString()} ชิ้น
+                      </span>
+                    </div>
+                    <div className="h-2 w-full rounded-full bg-neutral-100">
+                      <div
+                        className="h-2 rounded-full"
+                        style={{
+                          width: `${(f.deliveredQuantity / maxFoundationQty) * 100}%`,
+                          backgroundColor: '#2a78d6',
+                        }}
+                      />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

@@ -33,7 +33,7 @@ export function ClaimShareForm({ shareId, remaining }: { shareId: string; remain
     return (
       <p className="flex items-center gap-1.5 text-sm font-medium text-forest-700">
         <CheckCircle2 className="h-4 w-4" />
-        จองแล้ว — ดูรายละเอียดการรับที่{' '}
+        จองแล้ว กรุณาไปรับภายใน 24 ชม. — ดูรายละเอียดที่{' '}
         <Link href="/claims" className="underline">
           ของที่ขอรับ
         </Link>

@@ -5,11 +5,16 @@ export type ProductStatus = 'active' | 'sold_out' | 'expired' | 'shared';
  * Keys are stored in the DB (`products.category` CHECK); labels are Thai UI text.
  */
 export const PRODUCT_CATEGORIES = {
-  fresh: 'อาหารสด',
+  produce: 'ผักและผลไม้',
+  meat_seafood: 'เนื้อสัตว์และอาหารทะเล',
+  dairy: 'นมและผลิตภัณฑ์นม',
+  fresh: 'อาหารสดอื่น ๆ',
+  frozen: 'อาหารแช่แข็ง',
   bakery: 'เบเกอรี่',
+  snacks: 'ขนมและของหวาน',
+  ready_meal: 'อาหารสำเร็จรูป',
   beverage: 'เครื่องดื่ม',
   dry: 'อาหารแห้ง',
-  ready_meal: 'อาหารสำเร็จรูป',
 } as const;
 
 export type ProductCategory = keyof typeof PRODUCT_CATEGORIES;

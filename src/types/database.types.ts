@@ -107,7 +107,7 @@ export interface Database {
           id: string;
           store_id: string;
           name: string;
-          category: 'fresh' | 'bakery' | 'beverage' | 'dry' | 'ready_meal';
+          category: 'fresh' | 'bakery' | 'beverage' | 'dry' | 'ready_meal' | 'produce' | 'meat_seafood' | 'dairy' | 'frozen' | 'snacks';
           original_price: number;
           discount_price: number;
           quantity: number;
@@ -120,7 +120,7 @@ export interface Database {
           id?: string;
           store_id: string;
           name: string;
-          category: 'fresh' | 'bakery' | 'beverage' | 'dry' | 'ready_meal';
+          category: 'fresh' | 'bakery' | 'beverage' | 'dry' | 'ready_meal' | 'produce' | 'meat_seafood' | 'dairy' | 'frozen' | 'snacks';
           original_price: number;
           discount_price: number;
           quantity?: number;
@@ -133,7 +133,7 @@ export interface Database {
           id?: string;
           store_id?: string;
           name?: string;
-          category?: 'fresh' | 'bakery' | 'beverage' | 'dry' | 'ready_meal';
+          category?: 'fresh' | 'bakery' | 'beverage' | 'dry' | 'ready_meal' | 'produce' | 'meat_seafood' | 'dairy' | 'frozen' | 'snacks';
           original_price?: number;
           discount_price?: number;
           quantity?: number;

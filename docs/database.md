@@ -39,7 +39,7 @@ Near-expiry inventory items.
 - `id` UUID PRIMARY KEY DEFAULT gen_random_uuid()
 - `store_id` UUID NOT NULL REFERENCES public.stores(id) ON DELETE CASCADE
 - `name` TEXT NOT NULL CHECK (char_length(trim(name)) > 0)
-- `category` TEXT NOT NULL CHECK (category IN ('fresh', 'bakery', 'beverage', 'dry', 'ready_meal'))  -- near-expiry food only
+- `category` TEXT NOT NULL CHECK (category IN ('fresh', 'bakery', 'beverage', 'dry', 'ready_meal', 'produce', 'meat_seafood', 'dairy', 'frozen', 'snacks'))  -- extended by migration-add-categories.sql  -- near-expiry food only
 - `original_price` NUMERIC(10, 2) NOT NULL CHECK (original_price > 0)
 - `discount_price` NUMERIC(10, 2) NOT NULL CHECK (discount_price >= 0 AND discount_price < original_price)
 - `quantity` INTEGER NOT NULL DEFAULT 0 CHECK (quantity >= 0)

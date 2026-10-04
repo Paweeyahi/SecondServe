@@ -712,7 +712,8 @@ end to end.
   (`npm run seed`). Uses the Supabase Admin API (`SUPABASE_SERVICE_ROLE_KEY`,
   documented in `.env.local.example` — server/seed-only, bypasses RLS, never
   used by the app itself) to create one demo account per role (fixed
-  `demo-{role}@secondserve.local` emails, password `Demo1234!`), including
+  `demo-{role}@secondserve.local` emails; password from `SEED_DEMO_PASSWORD`
+  or randomly generated and printed — never hard-coded), including
   an admin account created directly via metadata — bypassing the
   register-page UI restriction rather than the old manual
   register-then-hand-edit-role workaround. Force-verifies the demo

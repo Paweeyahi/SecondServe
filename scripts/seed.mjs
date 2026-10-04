@@ -49,7 +49,12 @@ const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
-const DEMO_PASSWORD = 'Demo1234!';
+// Never hard-code this: the repo may be public and the seed creates an admin.
+// Set SEED_DEMO_PASSWORD in .env.local to choose one, otherwise a random one
+// is generated and printed at the end (accounts that already exist keep
+// whatever password they were created with).
+const DEMO_PASSWORD =
+  process.env.SEED_DEMO_PASSWORD || `Demo-${crypto.randomUUID().slice(0, 13)}`;
 
 const DEMO_USERS = [
   {

@@ -18,7 +18,10 @@ const env = Object.fromEntries(
 );
 const URL_ = env.NEXT_PUBLIC_SUPABASE_URL;
 const ANON = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const PW = 'AuditPass1234!';
+// Random per run -- the script lives in the repo, so a fixed password would let
+// anyone log into leftover audit accounts. Leftovers from an earlier run can't
+// be reused (unknown password): run docs/cleanup-test-accounts.sql first.
+const PW = `Audit-${crypto.randomUUID()}`;
 const results = [];
 
 async function api(path, { token = ANON, method = 'GET', body, headers = {} } = {}) {
@@ -55,7 +58,12 @@ async function signup(tag, role, extra = {}) {
   if (!r.json.access_token) {
     r = await api('/auth/v1/token?grant_type=password', { method: 'POST', body: { email, password: PW } });
   }
-  if (!r.json.access_token) throw new Error(`signup ${tag}: ${JSON.stringify(r.json)}`);
+  if (!r.json.access_token) {
+    throw new Error(
+      `signup ${tag}: ${JSON.stringify(r.json)}\n` +
+        'If the account already exists from an earlier run, delete it with docs/cleanup-test-accounts.sql and re-run.'
+    );
+  }
   return { token: r.json.access_token, id: r.json.user.id, email };
 }
 

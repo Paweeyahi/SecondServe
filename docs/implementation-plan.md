@@ -1052,7 +1052,9 @@ re-run it after every `npm run audit:security`.
 
 - **Deploy to Vercel** (M10) — see the root README.
 - Consumers can't cancel their own order yet (stores can).
-- Before real users: custom SMTP and email confirmation back on (signup
-  auto-confirm is currently on), a PDPA privacy notice with consent at signup,
-  and a `CREATE TABLE` file for M1's `profiles` / `stores` / `riders` (today
-  they are only described in `database.md`).
+- Before real users: fill in the data controller in `src/lib/legal.ts`, set
+  up custom SMTP, then turn email confirmation on (the app already handles
+  it). Done 2026-10-04: `/privacy` + `/terms` pages, required PDPA consent
+  checkbox at signup (recorded in auth user metadata), confirm-your-email
+  screen, and [`schema-core-tables.sql`](./schema-core-tables.sql) with the
+  missing `CREATE TABLE` for `profiles` / `stores` / `riders`.

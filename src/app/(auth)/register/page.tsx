@@ -28,6 +28,7 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmEmail, setConfirmEmail] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -41,6 +42,8 @@ export default function RegisterPage() {
       const result: AuthActionResult = await signUp(null, formData);
       if (result?.error) {
         setError(result.error);
+      } else if (result?.needsConfirmation) {
+        setConfirmEmail(String(formData.get('email')));
       }
     } catch (err: unknown) {
       if ((err as Error)?.message?.includes('NEXT_REDIRECT')) {
@@ -50,6 +53,30 @@ export default function RegisterPage() {
     } finally {
       setIsLoading(false);
     }
+  }
+
+  if (confirmEmail) {
+    return (
+      <div className="flex min-h-[calc(100vh-140px)] items-center justify-center px-4 py-12">
+        <Card className="w-full max-w-md shadow-lg">
+          <CardContent className="space-y-4 p-8 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-forest-100 text-forest-800">
+              <Mail className="h-7 w-7" />
+            </div>
+            <h2 className="text-xl font-bold text-forest-900">ยืนยันอีเมลเพื่อเริ่มใช้งาน</h2>
+            <p className="text-sm text-neutral-600">
+              เราส่งลิงก์ยืนยันไปที่ <span className="font-semibold">{confirmEmail}</span> แล้ว
+              กดลิงก์ในอีเมลเพื่อเปิดใช้บัญชี (ถ้าไม่เห็น ลองดูในโฟลเดอร์สแปม)
+            </p>
+            <Link href="/login" className="block">
+              <Button variant="outline" className="w-full">
+                ไปหน้าเข้าสู่ระบบ
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
@@ -240,6 +267,25 @@ export default function RegisterPage() {
             </CardContent>
 
             <CardFooter className="flex flex-col space-y-3">
+              <label className="flex w-full items-start gap-2.5 rounded-xl border border-neutral-200 bg-neutral-50 p-3 text-xs text-neutral-700">
+                <input
+                  type="checkbox"
+                  name="accept_terms"
+                  required
+                  className="mt-0.5 h-4 w-4 flex-shrink-0 accent-forest-700"
+                />
+                <span>
+                  ฉันได้อ่านและยอมรับ{' '}
+                  <Link href="/privacy" target="_blank" className="font-semibold text-forest-800 underline">
+                    นโยบายความเป็นส่วนตัว
+                  </Link>{' '}
+                  และ{' '}
+                  <Link href="/terms" target="_blank" className="font-semibold text-forest-800 underline">
+                    ข้อกำหนดการใช้งาน
+                  </Link>{' '}
+                  รวมถึงยินยอมให้ส่งชื่อ เบอร์โทร และที่อยู่ของฉันให้ร้านค้าและไรเดอร์ที่เกี่ยวข้องกับคำสั่งซื้อ
+                </span>
+              </label>
               <Button
                 type="submit"
                 variant="primary"

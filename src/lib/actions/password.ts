@@ -1,7 +1,7 @@
 'use server';
 
-import { headers } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
+import { siteOrigin } from '@/lib/site-origin';
 import { getAuthUser } from '@/lib/supabase/user';
 import { firstIssueMessage } from '@/lib/validation/auth';
 import { NewPasswordSchema, ResetRequestSchema } from '@/lib/validation/password';
@@ -9,16 +9,6 @@ import { NewPasswordSchema, ResetRequestSchema } from '@/lib/validation/password
 export interface PasswordActionResult {
   error?: string;
   success?: boolean;
-}
-
-/** Where the reset email's link should land (this site's /auth/callback). */
-function siteOrigin(): string {
-  const h = headers();
-  return (
-    h.get('origin') ??
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    `${h.get('x-forwarded-proto') ?? 'http'}://${h.get('host')}`
-  );
 }
 
 /**

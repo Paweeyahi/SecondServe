@@ -59,10 +59,7 @@ SQL ทั้งหมดอยู่ใน [`docs/`](./docs) รันใน Su
 
 ### ตั้งโปรเจกต์ใหม่ — ลำดับการรัน
 
-> ⚠️ ตาราง `profiles`, `stores`, `riders` (M1) ยังไม่มีไฟล์ `CREATE TABLE` — โครงสร้างอธิบายไว้ใน
-> [`docs/database.md`](./docs/database.md) ต้องสร้างตามนั้นก่อน
-
-1. [`fix-auth-signup.sql`](./docs/fix-auth-signup.sql) · [`migration-plan-schema.sql`](./docs/migration-plan-schema.sql)
+1. [`schema-core-tables.sql`](./docs/schema-core-tables.sql) (ตาราง `profiles` / `stores` / `riders`) → [`fix-auth-signup.sql`](./docs/fix-auth-signup.sql) → [`migration-plan-schema.sql`](./docs/migration-plan-schema.sql)
 2. ฟีเจอร์ตามลำดับ: `migration-m2-products` → `m4-orders` → `m5-realtime` → `m6-store-orders` → `m7-rider-delivery` → `m8-shares` → `m9-admin` → `m11-reviews`
 3. ส่วนขยายและการแก้ไข: `fix-expiry-gate`, `fix-public-shares`, `fix-job-pool-items`, `fix-product-visibility`, `fix-rider-reviews`, `fix-admin-store-sales`, `fix-profiles-visibility`, `fix-product-update-race`, `share-claims`, `foundations`, `fix-anon-is-admin`, `fix-reviewer-privacy`, `fix-column-privileges`, `fix-admin-signup`, `fix-storage-and-shared-status`, `add-categories`, `claim-timeout-and-store-logo` (ไฟล์ชื่อ `migration-<ชื่อ>.sql`)
 4. **ปิดท้ายด้วย** [`rls-policies.sql`](./docs/rls-policies.sql) — สถานะสุดท้ายของ RLS policy และฟังก์ชันทั้งหมด รันซ้ำได้ปลอดภัย และใช้ตรวจว่าไม่มี environment ไหนขาดการแก้ (ผลตรวจที่ถูกต้อง: 30 policies + 29 functions)
@@ -86,6 +83,18 @@ SQL ทั้งหมดอยู่ใน [`docs/`](./docs) รันใน Su
 3. ใส่ env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL` (**ไม่ใส่** service role key)
 4. Deploy แล้วเพิ่มโดเมนที่ได้ใน Supabase → Authentication → URL Configuration
 5. ทดสอบ: ล็อกอินทุกบทบาท, สั่งซื้อ → ร้านยืนยัน → ไรเดอร์ส่ง, แล้วรัน `npm run audit:security` + cleanup
+
+---
+
+## ก่อนเปิดให้ผู้ใช้จริง (checklist)
+
+1. **ข้อมูลผู้ให้บริการใน [`src/lib/legal.ts`](./src/lib/legal.ts)** — ใส่ชื่อผู้ควบคุมข้อมูลและอีเมลติดต่อ (ตอนนี้เป็นตัวยึดตำแหน่ง หน้า `/privacy` และ `/terms` จะขึ้นกล่องเตือนสีส้มจนกว่าจะใส่) และควรให้ผู้มีความรู้ด้านกฎหมายตรวจเนื้อหา
+2. **ตั้ง SMTP** (Supabase → Project Settings → Authentication → SMTP Settings) — เช่น Gmail (App Password) หรือ Brevo ซึ่งส่งได้โดยไม่ต้องมีโดเมนของตัวเอง
+3. **เปิดยืนยันอีเมล** (Authentication → Sign In / Providers → Email → *Confirm email*) — ทำ**หลัง**ข้อ 2 เท่านั้น ไม่งั้นผู้ใช้ใหม่จะไม่ได้รับอีเมลและเข้าระบบไม่ได้ แอปรองรับแล้ว: สมัครเสร็จจะขึ้นหน้า "ยืนยันอีเมล" และลิงก์ในอีเมลพากลับมาที่เว็บ
+4. **URL Configuration** ใส่โดเมนจริงทั้ง Site URL และ Redirect URLs
+5. ทดสอบด้วยอีเมลจริง: สมัคร → ได้อีเมลยืนยัน → กดลิงก์ → เข้าระบบได้, และลืมรหัสผ่าน → ได้อีเมล → ตั้งรหัสใหม่ได้
+
+การยินยอมตาม PDPA ถูกบันทึกตอนสมัครใน `auth.users.raw_user_meta_data` (`privacy_version`, `privacy_accepted_at`) — เปลี่ยน `PRIVACY_VERSION` ทุกครั้งที่แก้เนื้อหานโยบาย
 
 ---
 

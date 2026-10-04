@@ -22,6 +22,10 @@ const baseSignUp = z.object({
     .string()
     .trim()
     .regex(/^[0-9]{9,10}$/, 'เบอร์โทรศัพท์ต้องเป็นตัวเลข 9–10 หลัก'),
+  // PDPA: explicit consent to the privacy policy + terms (checkbox "on").
+  accept_terms: z.literal('on', {
+    errorMap: () => ({ message: 'กรุณายอมรับนโยบายความเป็นส่วนตัวและข้อกำหนดการใช้งาน' }),
+  }),
 });
 
 export const SignUpSchema = z.discriminatedUnion('role', [

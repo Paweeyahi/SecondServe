@@ -87,9 +87,17 @@ export async function SiteFooter() {
         ))}
       </div>
       <div className="border-t border-white/10">
-        <p className="mx-auto max-w-7xl px-4 py-4 text-xs text-forest-300 sm:px-6 lg:px-8">
-          © {new Date().getFullYear()} SecondServe · คุณค่ามีมากกว่าวันหมดอายุ
-        </p>
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2 px-4 py-4 text-xs text-forest-300 sm:px-6 lg:px-8">
+          <p>© {new Date().getFullYear()} SecondServe · คุณค่ามีมากกว่าวันหมดอายุ</p>
+          <nav aria-label="ข้อกำหนดและนโยบาย" className="flex gap-4">
+            <Link href="/privacy" className="hover:text-white">
+              นโยบายความเป็นส่วนตัว
+            </Link>
+            <Link href="/terms" className="hover:text-white">
+              ข้อกำหนดการใช้งาน
+            </Link>
+          </nav>
+        </div>
       </div>
     </footer>
   );

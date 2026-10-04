@@ -10,10 +10,14 @@ import {
   firstIssueMessage,
 } from '@/lib/validation/auth';
 import type { UserRole } from '@/types/roles';
+import { siteOrigin } from '@/lib/site-origin';
+import { PRIVACY_VERSION } from '@/lib/legal';
 
 export interface AuthActionResult {
   error?: string;
   success?: boolean;
+  /** Email confirmation is on: account created, no session until the link is clicked. */
+  needsConfirmation?: boolean;
 }
 
 const CONNECTION_HINT =
@@ -59,6 +63,11 @@ export async function signIn(
     if (msg.includes('fetch failed')) return { error: CONNECTION_HINT };
     if (msg.toLowerCase().includes('invalid login credentials')) {
       return { error: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' };
+    }
+    if (msg.toLowerCase().includes('email not confirmed')) {
+      return {
+        error: 'ยังไม่ได้ยืนยันอีเมล กรุณากดลิงก์ในอีเมลที่เราส่งให้ตอนสมัคร (ดูในโฟลเดอร์สแปมด้วย)',
+      };
     }
     return { error: msg };
   }
@@ -115,6 +124,7 @@ export async function signUp(
     password: formData.get('password'),
     full_name: formData.get('full_name'),
     phone: formData.get('phone'),
+    accept_terms: formData.get('accept_terms'),
     role: formData.get('role') ?? 'consumer',
     store_name: formData.get('store_name') ?? undefined,
     store_address: formData.get('store_address') ?? undefined,
@@ -132,6 +142,9 @@ export async function signUp(
     full_name: input.full_name,
     phone: input.phone,
     role: input.role,
+    // PDPA consent record (kept in auth.users.raw_user_meta_data).
+    privacy_version: PRIVACY_VERSION,
+    privacy_accepted_at: new Date().toISOString(),
   };
   if (input.role === 'store') {
     metadata.store_name = input.store_name;
@@ -144,7 +157,11 @@ export async function signUp(
   const { data: authData, error: signUpError } = await supabase.auth.signUp({
     email: input.email,
     password: input.password,
-    options: { data: metadata },
+    options: {
+      data: metadata,
+      // Where the "confirm your email" link lands once confirmation is on.
+      emailRedirectTo: `${siteOrigin()}/auth/callback?next=${roleDestination(input.role)}`,
+    },
   });
 
   if (signUpError || !authData.user) {
@@ -158,12 +175,9 @@ export async function signUp(
 
   revalidatePath('/', 'layout');
 
-  // Email confirmation enabled → no session yet.
+  // Email confirmation enabled → no session until the link is clicked.
   if (!authData.session) {
-    return {
-      success: true,
-      error: 'สมัครสมาชิกสำเร็จ กรุณายืนยันอีเมลของคุณ แล้วเข้าสู่ระบบอีกครั้ง',
-    };
+    return { success: true, needsConfirmation: true };
   }
 
   redirect(roleDestination(input.role));

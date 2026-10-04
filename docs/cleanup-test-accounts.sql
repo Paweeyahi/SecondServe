@@ -2,9 +2,11 @@
 -- Cleanup: delete the throwaway QA accounts created during testing
 -- Run in Supabase Dashboard > SQL Editor. Safe to run more than once.
 --
--- Only these six exact emails are touched -- nothing matched by pattern:
+-- Only these exact emails are touched -- nothing matched by pattern:
 --   qa-responsive-consumer / -store / -rider @test.local  (responsive QA, 2026-09-22)
 --   qa-login-test / qa-login-store / qa-login-rider @test.local (login debugging, 2026-10-04)
+--   audit-consumer-a / -consumer-b / -store-a / -store-b / -rider / -admin-try
+--     @test.local  (scripts/security-audit.mjs -- re-run this file after every audit)
 --
 -- Deletes child rows first (products -> stores / riders -> profiles ->
 -- auth.users) so it works regardless of which foreign keys cascade. If any
@@ -24,7 +26,13 @@ create temporary table qa_users on commit drop as
      'qa-responsive-rider@test.local',
      'qa-login-test@test.local',
      'qa-login-store@test.local',
-     'qa-login-rider@test.local'
+     'qa-login-rider@test.local',
+     'audit-consumer-a@test.local',
+     'audit-consumer-b@test.local',
+     'audit-store-a@test.local',
+     'audit-store-b@test.local',
+     'audit-rider@test.local',
+     'audit-admin-try@test.local'
    );
 
 delete from public.products
@@ -37,7 +45,7 @@ delete from auth.users      where id       in (select id from qa_users);
 commit;
 
 -- Verify -- last statement, so the SQL Editor shows it after Run.
-select count(*) as qa_accounts_remaining
+select count(*) as test_accounts_remaining
   from auth.users
- where email like 'qa-%@test.local';
--- Expect 1 row: qa_accounts_remaining = 0.
+ where email like 'qa-%@test.local' or email like 'audit-%@test.local';
+-- Expect 1 row: test_accounts_remaining = 0.

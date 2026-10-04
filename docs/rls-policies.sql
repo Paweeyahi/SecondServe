@@ -340,10 +340,18 @@ create policy "products_insert_own" on public.products
 -- (simple absolute writes, no read-then-write race). updateProduct routes
 -- through update_product() below instead, since it edits quantity based on
 -- a value read earlier (at edit-page render time).
+-- No direct path into or out of 'shared' -- share_product() only.
+-- [FINAL: migration-fix-storage-and-shared-status.sql]
 drop policy if exists "products_update_own" on public.products;
 create policy "products_update_own" on public.products
-  for update using (
+  for update
+  using (
     store_id in (select id from public.stores where owner_id = auth.uid())
+    and status <> 'shared'
+  )
+  with check (
+    store_id in (select id from public.stores where owner_id = auth.uid())
+    and status <> 'shared'
   );
 
 -- Closes the lost-update race in the product edit form: the form is
@@ -428,7 +436,7 @@ create policy "products_delete_own" on public.products
     store_id in (select id from public.stores where owner_id = auth.uid())
   );
 
--- Storage bucket 'products' -- public read, store-role-only writes.
+-- Storage bucket 'products' -- public read, owner-store-only writes.
 -- [migration-m2-products.sql]
 insert into storage.buckets (id, name, public)
 values ('products', 'products', true)
@@ -438,12 +446,16 @@ drop policy if exists "product_images_public_read" on storage.objects;
 create policy "product_images_public_read" on storage.objects
   for select using (bucket_id = 'products');
 
+-- Writes limited to products/<a store the caller owns>/...
+-- [FINAL: migration-fix-storage-and-shared-status.sql]
 drop policy if exists "product_images_store_insert" on storage.objects;
 create policy "product_images_store_insert" on storage.objects
   for insert to authenticated
   with check (
     bucket_id = 'products'
-    and exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'store')
+    and (storage.foldername(name))[1] in (
+      select id::text from public.stores where owner_id = auth.uid()
+    )
   );
 
 drop policy if exists "product_images_store_update" on storage.objects;
@@ -451,7 +463,15 @@ create policy "product_images_store_update" on storage.objects
   for update to authenticated
   using (
     bucket_id = 'products'
-    and exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'store')
+    and (storage.foldername(name))[1] in (
+      select id::text from public.stores where owner_id = auth.uid()
+    )
+  )
+  with check (
+    bucket_id = 'products'
+    and (storage.foldername(name))[1] in (
+      select id::text from public.stores where owner_id = auth.uid()
+    )
   );
 
 drop policy if exists "product_images_store_delete" on storage.objects;
@@ -459,7 +479,9 @@ create policy "product_images_store_delete" on storage.objects
   for delete to authenticated
   using (
     bucket_id = 'products'
-    and exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'store')
+    and (storage.foldername(name))[1] in (
+      select id::text from public.stores where owner_id = auth.uid()
+    )
   );
 
 

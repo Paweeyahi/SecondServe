@@ -44,4 +44,5 @@ export const ProductUpdateSchema = baseProduct.refine(
 );
 export type ProductUpdateInput = z.infer<typeof ProductUpdateSchema>;
 
-export const ProductStatusSchema = z.enum(['active', 'sold_out', 'expired', 'shared']);
+// 'shared' is set only by share_product() (it also writes the donation log).
+export const ProductStatusSchema = z.enum(['active', 'sold_out', 'expired']);

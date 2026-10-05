@@ -16,7 +16,8 @@ import { ORDER_STATUS_LABELS, type OrderStatus } from '@/types/order';
 export const dynamic = 'force-dynamic';
 
 function formatBaht(n: number): string {
-  return `฿${n.toLocaleString('th-TH', { maximumFractionDigits: 2 })}`;
+  const frac = Number.isInteger(n) ? 0 : 2;
+  return `฿${n.toLocaleString('th-TH', { minimumFractionDigits: frac, maximumFractionDigits: frac })}`;
 }
 
 export default async function AdminDashboardPage() {

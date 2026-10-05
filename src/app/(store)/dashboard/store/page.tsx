@@ -30,7 +30,8 @@ function formatBaht(n: number): string {
 }
 
 function formatBahtExact(n: number): string {
-  return `฿${n.toLocaleString('th-TH', { maximumFractionDigits: 2 })}`;
+  const frac = Number.isInteger(n) ? 0 : 2;
+  return `฿${n.toLocaleString('th-TH', { minimumFractionDigits: frac, maximumFractionDigits: frac })}`;
 }
 
 /** % change vs the previous period, or null when there is no baseline. */

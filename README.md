@@ -3,6 +3,8 @@
 แพลตฟอร์มส่งต่อสินค้าใกล้หมดอายุ เชื่อม **ผู้บริโภค ร้านค้า ไรเดอร์ และแอดมิน** เข้าด้วยกัน
 ซื้อของดีราคาประหยัด รับเองหรือให้ไรเดอร์ส่ง และส่งต่ออาหารให้ชุมชน/มูลนิธิแทนการทิ้ง
 
+**เว็บจริง:** https://second-serve-gamma.vercel.app (deploy อัตโนมัติทุกครั้งที่ push ขึ้น `main`)
+
 **Stack:** Next.js 14 (App Router, Server Actions) · TypeScript · Tailwind CSS · Supabase
 (Postgres + Auth + Storage + Realtime + pg_cron) · Zod · Vercel
 

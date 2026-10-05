@@ -50,7 +50,7 @@ authoritative.
 | M7 | Rider Delivery Workflow | rider | Req. §5 | ✅ |
 | M8 | Community Donation / Sharing | store | Req. §6 | ✅ (extended by M13) |
 | M9 | Admin Moderation & Platform Metrics | admin | Req. §7 | ✅ |
-| M10 | Hardening, RLS Audit & Deployment | all | §8–§10 | 🟡 everything except the Vercel deploy |
+| M10 | Hardening, RLS Audit & Deployment | all | §8–§10 | ✅ live at https://second-serve-gamma.vercel.app (2026-10-05) |
 | M11 | Store Reviews & Ratings | consumer / public | added post-MVP, see scope.md | ✅ |
 | M12 | Web Push Notifications | all | added post-MVP, see scope.md | ❌ removed 2026-09-22 |
 | M13 | Community Donations v2 (claims, foundations, auto-cancel) | consumer / store / admin | extends Req. §6 | ✅ |
@@ -704,9 +704,12 @@ end to end.
 - `next build` + `tsc --noEmit` in CI; Vercel project + env vars
   (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
   `NEXT_PUBLIC_SITE_URL` — the VAPID pair M12 added here is gone along with
-  M12 itself) ⬜ **not started** — the only open M10 item. Git was
-  initialised 2026-10-04 (branch `main`); step-by-step deploy notes are in
-  the root [`README.md`](../README.md).
+  M12 itself) ✅ **deployed 2026-10-05** to
+  https://second-serve-gamma.vercel.app (Vercel Hobby, auto-deploys on push
+  to `main`; Supabase Site URL + Redirect URLs set to that domain). The first
+  build failed because the generated Open Graph image was a 1.34 MB edge
+  function (Hobby limit 1 MB); it is now a static `opengraph-image.png`.
+  Step-by-step deploy notes are in the root [`README.md`](../README.md).
 - Seed script for demo data (one store, products, a consumer, a rider, an admin)
   ✅ **done 2026-09-22** — [`scripts/seed.mjs`](../scripts/seed.mjs)
   (`npm run seed`). Uses the Supabase Admin API (`SUPABASE_SERVICE_ROLE_KEY`,
@@ -1050,7 +1053,6 @@ re-run it after every `npm run audit:security`.
 
 ### Still open
 
-- **Deploy to Vercel** (M10) — see the root README.
 - Consumers can't cancel their own order yet (stores can).
 - Before real users: fill in the data controller in `src/lib/legal.ts`, set
   up custom SMTP, then turn email confirmation on (the app already handles

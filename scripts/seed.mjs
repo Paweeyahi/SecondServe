@@ -142,7 +142,8 @@ async function uploadProductImage(storeId, seed) {
   if (!res.ok) throw new Error(`placeholder image fetch failed: ${res.status}`);
   const bytes = Buffer.from(await res.arrayBuffer());
 
-  const path = `${storeId}/seed-${seed}.jpg`;
+  // Storage keys must be ASCII -- product names are Thai, so hex-encode the seed.
+  const path = `${storeId}/seed-${Buffer.from(seed).toString('hex').slice(0, 24)}.jpg`;
   const { error } = await supabase.storage
     .from('products')
     .upload(path, bytes, { contentType: 'image/jpeg', upsert: true });

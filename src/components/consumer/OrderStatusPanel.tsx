@@ -26,20 +26,35 @@ export function OrderStatusPanel({
 
   useEffect(() => {
     const supabase = createClient();
-    const channel = supabase
-      .channel(`order-status-${orderId}`)
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` },
-        (payload) => {
-          const next = (payload.new as { status?: OrderStatus }).status;
-          if (next) setStatus(next);
-        }
-      )
-      .subscribe();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let cancelled = false;
+
+    (async () => {
+      // The browser client loads its session from cookies asynchronously. Joining
+      // before that sends no user JWT, so Realtime evaluates RLS as anon and
+      // silently drops every orders event -- hand it the token first.
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (cancelled) return;
+      if (session) await supabase.realtime.setAuth(session.access_token);
+
+      channel = supabase
+        .channel(`order-status-${orderId}`)
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` },
+          (payload) => {
+            const next = (payload.new as { status?: OrderStatus }).status;
+            if (next) setStatus(next);
+          }
+        )
+        .subscribe();
+    })();
 
     return () => {
-      supabase.removeChannel(channel);
+      cancelled = true;
+      if (channel) supabase.removeChannel(channel);
     };
   }, [orderId]);
 

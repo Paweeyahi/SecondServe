@@ -1474,7 +1474,7 @@ begin
   end if;
 
   return query
-    select p.id, p.role, p.full_name, p.phone, u.email, p.suspended, p.created_at
+    select p.id, p.role, p.full_name, p.phone, u.email::text, p.suspended, p.created_at
     from public.profiles p
     join auth.users u on u.id = p.id
     order by p.created_at desc;

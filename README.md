@@ -63,8 +63,8 @@ SQL ทั้งหมดอยู่ใน [`docs/`](./docs) รันใน Su
 
 1. [`schema-core-tables.sql`](./docs/schema-core-tables.sql) (ตาราง `profiles` / `stores` / `riders`) → [`fix-auth-signup.sql`](./docs/fix-auth-signup.sql) → [`migration-plan-schema.sql`](./docs/migration-plan-schema.sql)
 2. ฟีเจอร์ตามลำดับ: `migration-m2-products` → `m4-orders` → `m5-realtime` → `m6-store-orders` → `m7-rider-delivery` → `m8-shares` → `m9-admin` → `m11-reviews`
-3. ส่วนขยายและการแก้ไข: `fix-expiry-gate`, `fix-public-shares`, `fix-job-pool-items`, `fix-product-visibility`, `fix-rider-reviews`, `fix-admin-store-sales`, `fix-profiles-visibility`, `fix-product-update-race`, `share-claims`, `foundations`, `fix-anon-is-admin`, `fix-reviewer-privacy`, `fix-column-privileges`, `fix-admin-signup`, `fix-storage-and-shared-status`, `add-categories`, `claim-timeout-and-store-logo`, `fix-admin-list-users`, `commission` (ไฟล์ชื่อ `migration-<ชื่อ>.sql`)
-4. **ปิดท้ายด้วย** [`rls-policies.sql`](./docs/rls-policies.sql) — สถานะสุดท้ายของ RLS policy และฟังก์ชันทั้งหมด รันซ้ำได้ปลอดภัย และใช้ตรวจว่าไม่มี environment ไหนขาดการแก้ (ผลตรวจที่ถูกต้อง: 31 policies + 31 functions)
+3. ส่วนขยายและการแก้ไข: `fix-expiry-gate`, `fix-public-shares`, `fix-job-pool-items`, `fix-product-visibility`, `fix-rider-reviews`, `fix-admin-store-sales`, `fix-profiles-visibility`, `fix-product-update-race`, `share-claims`, `foundations`, `fix-anon-is-admin`, `fix-reviewer-privacy`, `fix-column-privileges`, `fix-admin-signup`, `fix-storage-and-shared-status`, `add-categories`, `claim-timeout-and-store-logo`, `fix-admin-list-users`, `commission`, `admin-user-detail` (ไฟล์ชื่อ `migration-<ชื่อ>.sql`)
+4. **ปิดท้ายด้วย** [`rls-policies.sql`](./docs/rls-policies.sql) — สถานะสุดท้ายของ RLS policy และฟังก์ชันทั้งหมด รันซ้ำได้ปลอดภัย และใช้ตรวจว่าไม่มี environment ไหนขาดการแก้ (ผลตรวจที่ถูกต้อง: 31 policies + 33 functions)
 
 ไม่ต้องรัน `migration-m12-push.sql` (ฟีเจอร์ถูกถอดออกแล้ว — `migration-remove-push.sql` เก็บไว้เป็นประวัติ)
 

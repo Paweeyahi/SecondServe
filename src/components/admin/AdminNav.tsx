@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Bike, Building2, LayoutDashboard, Store, Users } from 'lucide-react';
+import { Bike, Building2, LayoutDashboard, Percent, Store, Users } from 'lucide-react';
 
 const TABS = [
   { href: '/dashboard/admin', label: 'ภาพรวม', icon: LayoutDashboard, exact: true },
@@ -10,6 +10,7 @@ const TABS = [
   { href: '/dashboard/admin/stores', label: 'ร้านค้า', icon: Store, exact: false },
   { href: '/dashboard/admin/riders', label: 'ไรเดอร์', icon: Bike, exact: false },
   { href: '/dashboard/admin/foundations', label: 'มูลนิธิ', icon: Building2, exact: false },
+  { href: '/dashboard/admin/commission', label: 'คอมมิชชัน', icon: Percent, exact: false },
 ];
 
 export function AdminNav() {

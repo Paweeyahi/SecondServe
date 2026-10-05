@@ -119,6 +119,93 @@ export async function getCommissionSummary(): Promise<CommissionSummary | null> 
   };
 }
 
+export interface AdminUserDetail {
+  id: string;
+  role: 'consumer' | 'store' | 'rider' | 'admin';
+  full_name: string;
+  phone: string;
+  suspended: boolean;
+  created_at: string;
+  email: string | null;
+  email_confirmed_at: string | null;
+  last_sign_in_at: string | null;
+  consumer: {
+    orders_total: number;
+    orders_completed: number;
+    spent_total: number;
+    claims_total: number;
+    reviews_total: number;
+    recent_orders: {
+      id: string;
+      status: string;
+      delivery_type: 'pickup' | 'delivery';
+      total_amount: number;
+      created_at: string;
+      store_name: string;
+    }[];
+  };
+  store?: {
+    id: string;
+    name: string;
+    address: string;
+    phone: string;
+    latitude: number;
+    longitude: number;
+    delivery_fee: number;
+    logo_url: string | null;
+    verified: boolean;
+    created_at: string;
+    products_total: number;
+    products_active: number;
+    orders_completed: number;
+    gross: number;
+    commission: number;
+    shares_quantity: number;
+  } | null;
+  rider?: {
+    vehicle_type: string;
+    license_plate: string;
+    status: string;
+    verified: boolean;
+    created_at: string;
+    deliveries_completed: number;
+    earnings: number;
+    rating_avg: number | null;
+    rating_count: number;
+  } | null;
+}
+
+/** One user's account + role-specific data via admin_get_user(). */
+export async function getUserDetail(userId: string): Promise<AdminUserDetail | null> {
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc('admin_get_user', { p_user_id: userId });
+  if (error || !data) return null;
+  return data as unknown as AdminUserDetail;
+}
+
+export interface StoreCommissionDetail {
+  store: { id: string; name: string; phone: string; verified: boolean; owner_id: string; owner_name: string };
+  totals: { orders: number; gross: number; commission: number; net: number };
+  monthly: { month: string; orders: number; gross: number; commission: number }[];
+  orders: {
+    id: string;
+    created_at: string;
+    delivery_type: 'pickup' | 'delivery';
+    subtotal: number;
+    commission_rate: number;
+    commission_amount: number;
+    net: number;
+  }[];
+}
+
+/** One store's completed orders and their deductions via admin_store_commission(). */
+export async function getStoreCommission(storeId: string): Promise<StoreCommissionDetail | null> {
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc('admin_store_commission', { p_store_id: storeId });
+  if (error || !data) return null;
+  return data as unknown as StoreCommissionDetail;
+}
+
 export interface DonationOverview {
   claims: { reserved: number; collected: number; cancelled: number; timedOut: number };
   topStores: { storeId: string; name: string; quantity: number; donations: number }[];

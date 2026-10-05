@@ -496,6 +496,14 @@ export interface Database {
         Args: Record<string, never>;
         Returns: Json;
       };
+      admin_get_user: {
+        Args: { p_user_id: string };
+        Returns: Json;
+      };
+      admin_store_commission: {
+        Args: { p_store_id: string };
+        Returns: Json;
+      };
       admin_store_sales_report: {
         Args: Record<string, never>;
         Returns: Json;

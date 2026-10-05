@@ -8,7 +8,14 @@ function formatCurrency(n: number): string {
   return `฿${n.toLocaleString('th-TH', { maximumFractionDigits: 0 })}`;
 }
 
-export function StoreSalesChart({ report }: { report: StoreSalesRow[] }) {
+export function StoreSalesChart({
+  report,
+  ratePercent,
+}: {
+  report: StoreSalesRow[];
+  /** Current platform rate, for the caption only -- each order keeps its own. */
+  ratePercent?: number;
+}) {
   const withSales = report.filter((r) => r.revenue > 0);
   const maxRevenue = Math.max(...withSales.map((r) => r.revenue), 1);
   const totalCommission = report.reduce((s, r) => s + r.commission, 0);
@@ -20,7 +27,8 @@ export function StoreSalesChart({ report }: { report: StoreSalesRow[] }) {
           ยอดขายและค่าคอมมิชชันแยกตามร้านค้า
         </h3>
         <span className="text-xs text-neutral-500">
-          คอมมิชชันรวม {formatCurrency(totalCommission)} (สมมติฐาน 10% ของยอดขาย)
+          หักคอมมิชชันแล้วรวม {formatCurrency(totalCommission)}
+          {ratePercent !== undefined && ` · อัตราปัจจุบัน ${ratePercent}%`}
         </span>
       </div>
 
@@ -54,21 +62,27 @@ export function StoreSalesChart({ report }: { report: StoreSalesRow[] }) {
           <thead>
             <tr className="text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">
               <th className="py-1.5">ร้านค้า</th>
+              <th className="py-1.5 text-right">ออเดอร์สำเร็จ</th>
               <th className="py-1.5 text-right">จำนวนที่ขายได้</th>
               <th className="py-1.5 text-right">ยอดขาย</th>
-              <th className="py-1.5 text-right">ค่าคอมมิชชัน</th>
+              <th className="py-1.5 text-right">ถูกหักคอมมิชชัน</th>
+              <th className="py-1.5 text-right">สุทธิของร้าน</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-100">
             {report.map((row) => (
               <tr key={row.store_id}>
                 <td className="py-2 text-neutral-800">{row.store_name}</td>
+                <td className="py-2 text-right text-neutral-600">{row.orders}</td>
                 <td className="py-2 text-right text-neutral-600">{row.quantity_sold}</td>
                 <td className="py-2 text-right font-medium text-neutral-900">
                   {formatCurrency(row.revenue)}
                 </td>
-                <td className="py-2 text-right text-forest-700">
-                  {formatCurrency(row.commission)}
+                <td className="py-2 text-right text-orange-600">
+                  −{formatCurrency(row.commission)}
+                </td>
+                <td className="py-2 text-right font-medium text-forest-800">
+                  {formatCurrency(row.net)}
                 </td>
               </tr>
             ))}

@@ -555,7 +555,7 @@ create policy "order_items_select_related" on public.order_items
 -- Replaces: migration-m4-orders.sql's version (missing expiry_date > now()
 -- in the stock-decrement WHERE clause -- an already-expired-but-still-
 -- 'active' product could still be checked out).
--- [FINAL: migration-fix-expiry-gate.sql]
+-- [FINAL: migration-commission.sql -- adds the commission_rate snapshot]
 create or replace function public.place_order(
   p_store_id       uuid,
   p_delivery_type  text,
@@ -575,17 +575,21 @@ declare
   v_fee      numeric(10,2) := 0;
   v_items_total numeric(10,2) := 0;
   v_address  text := nullif(trim(coalesce(p_delivery_address, '')), '');
+  v_rate     numeric(5,4);
 begin
   if v_consumer is null then
     raise exception 'AUTH_REQUIRED';
   end if;
+
   if not exists (select 1 from public.profiles
                  where id = v_consumer and role = 'consumer' and suspended = false) then
     raise exception 'CONSUMER_ONLY';
   end if;
+
   if p_delivery_type not in ('pickup','delivery') then
     raise exception 'BAD_DELIVERY_TYPE';
   end if;
+
   if jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items) = 0 then
     raise exception 'EMPTY_CART';
   end if;
@@ -605,10 +609,13 @@ begin
     v_fee := 0;
   end if;
 
+  select coalesce((select commission_rate from public.platform_settings where id), 0.10)
+    into v_rate;
+
   insert into public.orders
-    (consumer_id, store_id, delivery_type, delivery_address, delivery_fee, total_amount, status)
+    (consumer_id, store_id, delivery_type, delivery_address, delivery_fee, total_amount, status, commission_rate)
   values
-    (v_consumer, p_store_id, p_delivery_type, v_address, v_fee, v_fee, 'pending')
+    (v_consumer, p_store_id, p_delivery_type, v_address, v_fee, v_fee, 'pending', v_rate)
   returning id into v_order_id;
 
   for v_item in select * from jsonb_array_elements(p_items)
@@ -1530,6 +1537,7 @@ grant execute on function public.admin_platform_metrics() to authenticated;
 -- see implementation-plan.md M11's note; there's no real commission/billing
 -- concept anywhere else in this Cash-on-Delivery app).
 -- [migration-fix-admin-store-sales.sql]
+-- [FINAL: migration-commission.sql -- real per-order commission]
 create or replace function public.admin_store_sales_report()
 returns jsonb
 language plpgsql
@@ -1548,12 +1556,16 @@ begin
     select
       s.id as store_id,
       s.name as store_name,
-      coalesce(sum(oi.quantity), 0)::int as quantity_sold,
-      coalesce(sum(oi.quantity * oi.unit_price), 0) as revenue,
-      round(coalesce(sum(oi.quantity * oi.unit_price), 0) * 0.10, 2) as commission
+      coalesce(sum(q.items), 0)::int as quantity_sold,
+      count(o.id)::int as orders,
+      coalesce(sum(o.total_amount - o.delivery_fee), 0) as revenue,
+      coalesce(sum(o.commission_amount), 0) as commission,
+      coalesce(sum(o.total_amount - o.delivery_fee - o.commission_amount), 0) as net
     from public.stores s
     left join public.orders o on o.store_id = s.id and o.status = 'completed'
-    left join public.order_items oi on oi.order_id = o.id
+    left join lateral (
+      select sum(oi.quantity) as items from public.order_items oi where oi.order_id = o.id
+    ) q on true
     group by s.id, s.name
     order by revenue desc
   ) t;
@@ -1696,6 +1708,75 @@ end $$;
 
 
 -- #######################################################################
+-- # 12b. Platform commission [migration-commission.sql]
+-- #######################################################################
+alter table public.platform_settings enable row level security;
+
+-- Stores see the current rate on their dashboard; it is not secret.
+drop policy if exists "platform_settings_select_all" on public.platform_settings;
+create policy "platform_settings_select_all" on public.platform_settings
+  for select using (true);
+
+-- No write policy: admin_set_commission_rate() is the only write path.
+revoke insert, update, delete on public.platform_settings from anon, authenticated;
+
+create or replace function public.admin_set_commission_rate(p_rate numeric)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.is_admin() then
+    raise exception 'ADMIN_ONLY';
+  end if;
+  if p_rate is null or p_rate < 0 or p_rate > 0.5 then
+    raise exception 'BAD_RATE';
+  end if;
+
+  update public.platform_settings
+     set commission_rate = round(p_rate, 4), updated_at = now()
+   where id;
+end;
+$$;
+
+revoke all on function public.admin_set_commission_rate(numeric) from public, anon;
+grant execute on function public.admin_set_commission_rate(numeric) to authenticated;
+
+create or replace function public.admin_commission_summary()
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_result jsonb;
+begin
+  if not public.is_admin() then
+    raise exception 'ADMIN_ONLY';
+  end if;
+
+  select jsonb_build_object(
+    'rate', (select commission_rate from public.platform_settings where id),
+    'completed_orders', count(*),
+    'gross', coalesce(sum(total_amount - delivery_fee), 0),
+    'commission_total', coalesce(sum(commission_amount), 0),
+    'net_to_stores', coalesce(sum(total_amount - delivery_fee - commission_amount), 0),
+    'commission_30d', coalesce(sum(commission_amount) filter (where created_at >= now() - interval '30 days'), 0),
+    'gross_30d', coalesce(sum(total_amount - delivery_fee) filter (where created_at >= now() - interval '30 days'), 0)
+  ) into v_result
+  from public.orders
+  where status = 'completed';
+
+  return v_result;
+end;
+$$;
+
+revoke all on function public.admin_commission_summary() from public, anon;
+grant execute on function public.admin_commission_summary() to authenticated;
+
+
+-- #######################################################################
 -- # 13. Verify -- one full audit query, last statement so it auto-shows
 -- #######################################################################
 select 'policy' as kind, tablename as on_table, policyname as name
@@ -1717,7 +1798,8 @@ select 'function', 'public', proname
      'update_product', 'claim_share', 'cancel_share_claim',
      'mark_share_collected', 'community_share_stats',
      'admin_save_foundation', 'mark_foundation_delivered',
-     'reviewer_names', 'run_expiry_jobs'
+     'reviewer_names', 'run_expiry_jobs',
+     'admin_set_commission_rate', 'admin_commission_summary'
    )
 order by kind, on_table, name;
 -- Expect 27 policy rows + 21 function rows (48 total): 50 after M11/M12,
@@ -1734,4 +1816,7 @@ order by kind, on_table, name;
 -- adds reviewer_names() -> 30 policy rows + 28 function rows (58 total).
 -- migration-claim-timeout-and-store-logo.sql adds run_expiry_jobs()
 -- -> 30 policy rows + 29 function rows (59 total).
+-- migration-commission.sql adds 1 policy (platform_settings_select_all) +
+-- 2 functions (admin_set_commission_rate, admin_commission_summary)
+-- -> 31 policy rows + 31 function rows (62 total).
 -- Cross-check against the section headers above if any are missing.

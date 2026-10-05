@@ -1,19 +1,41 @@
 import Link from 'next/link';
-import { Bike, HeartHandshake, Package, Store, Users } from 'lucide-react';
+import { Bike, HeartHandshake, Package, Percent, Store, Users } from 'lucide-react';
 import { MetricCard } from '@/components/admin/MetricCard';
-import { getDonationOverview, getPlatformMetrics } from '@/lib/queries/admin';
+import { CommissionRateForm } from '@/components/admin/CommissionRateForm';
+import { StoreSalesChart } from '@/components/admin/StoreSalesChart';
+import {
+  getCommissionSummary,
+  getDonationOverview,
+  getPlatformMetrics,
+  getStoreSalesReport,
+} from '@/lib/queries/admin';
 import { getCommunityShareStats } from '@/lib/queries/shares';
 import { SectionTitle } from '@/components/ui/PageHeader';
 import { ORDER_STATUS_LABELS, type OrderStatus } from '@/types/order';
 
 export const dynamic = 'force-dynamic';
 
+function formatBaht(n: number): string {
+  return `฿${n.toLocaleString('th-TH', { maximumFractionDigits: 2 })}`;
+}
+
 export default async function AdminDashboardPage() {
-  const [metrics, shareStats, donations] = await Promise.all([
+  const [metrics, shareStats, donations, commission, salesReport] = await Promise.all([
     getPlatformMetrics(),
     getCommunityShareStats(),
     getDonationOverview(),
+    getCommissionSummary(),
+    getStoreSalesReport(),
   ]);
+  const ratePercent = commission ? Math.round(commission.rate * 10000) / 100 : 10;
+  const commissionTiles = commission
+    ? [
+        { label: 'หักคอมมิชชันแล้วทั้งหมด', value: formatBaht(commission.commission_total), tone: 'text-orange-600', hint: `จาก ${commission.completed_orders.toLocaleString()} ออเดอร์ที่สำเร็จ` },
+        { label: 'หักใน 30 วันล่าสุด', value: formatBaht(commission.commission_30d), tone: 'text-orange-600', hint: `จากยอดขาย ${formatBaht(commission.gross_30d)}` },
+        { label: 'ยอดขายสินค้ารวม', value: formatBaht(commission.gross), tone: 'text-neutral-900', hint: 'ไม่รวมค่าจัดส่งของไรเดอร์' },
+        { label: 'สุทธิที่ร้านค้าได้รับ', value: formatBaht(commission.net_to_stores), tone: 'text-forest-800', hint: 'ยอดขาย − คอมมิชชัน' },
+      ]
+    : [];
   const donationTiles = [
     { label: 'ส่งต่อทั้งหมด', value: shareStats.totalQuantity, tone: 'text-forest-900' },
     { label: 'ผู้รับมารับแล้ว', value: donations.claims.collected, tone: 'text-forest-800' },
@@ -84,6 +106,38 @@ export default async function AdminDashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Platform commission */}
+      <section className="space-y-4">
+        <SectionTitle subtitle="ระบบหักอัตโนมัติจากยอดขายสินค้าของทุกออเดอร์ที่สำเร็จ (ไม่รวมค่าจัดส่ง) แต่ละออเดอร์ใช้อัตรา ณ เวลาที่สั่งซื้อ">
+          รายได้แพลตฟอร์ม (ค่าคอมมิชชัน)
+        </SectionTitle>
+        {commission ? (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="rounded-2xl border border-forest-200 bg-forest-50/60 p-4 shadow-sm">
+              <p className="flex items-center gap-1 text-xs font-medium text-neutral-500">
+                <Percent className="h-3.5 w-3.5" /> อัตราปัจจุบัน
+              </p>
+              <p className="mt-1 text-2xl font-extrabold text-forest-900">{ratePercent}%</p>
+              <div className="mt-2">
+                <CommissionRateForm ratePercent={ratePercent} />
+              </div>
+            </div>
+            {commissionTiles.map((t) => (
+              <div key={t.label} className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
+                <p className="text-xs font-medium text-neutral-500">{t.label}</p>
+                <p className={`mt-1 text-2xl font-extrabold ${t.tone}`}>{t.value}</p>
+                <p className="mt-1 text-xs text-neutral-500">{t.hint}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="rounded-xl border border-dashed border-neutral-200 bg-white p-4 text-sm text-neutral-500">
+            ยังโหลดข้อมูลค่าคอมมิชชันไม่ได้ (ตรวจว่ารัน docs/migration-commission.sql แล้ว)
+          </p>
+        )}
+        <StoreSalesChart report={salesReport} ratePercent={ratePercent} />
+      </section>
 
       {/* Donations */}
       <section className="space-y-4">

@@ -10,6 +10,7 @@ type DashboardOrder = {
   id: string;
   status: string;
   created_at: string;
+  commission_amount: number;
   items: { quantity: number; unit_price: number; product_id: string; product: { name: string } | null }[];
 };
 
@@ -19,6 +20,16 @@ export interface PeriodTotals {
   itemsSold: number;
   cancelledOrders: number;
   totalOrders: number;
+  /** Platform commission deducted from completed orders. */
+  commission: number;
+}
+
+export interface StoreCommission {
+  /** Current platform rate, 0.10 = 10%. */
+  rate: number;
+  /** All completed orders, ever. */
+  allTimeCommission: number;
+  allTimeRevenue: number;
 }
 
 export interface DailyRevenue {
@@ -35,6 +46,7 @@ export interface StoreDashboardData {
   topProducts: { productId: string; name: string; quantity: number; revenue: number }[];
   openOrders: { pending: number; confirmed: number; ready: number };
   sharedQuantity: number;
+  commission: StoreCommission;
 }
 
 /** Calendar date in Bangkok for a timestamp, as YYYY-MM-DD. */
@@ -57,6 +69,7 @@ function totals(orders: DashboardOrder[]): PeriodTotals {
     ),
     cancelledOrders: orders.filter((o) => o.status === 'cancelled').length,
     totalOrders: orders.length,
+    commission: completed.reduce((sum, o) => sum + Number(o.commission_amount ?? 0), 0),
   };
 }
 
@@ -71,11 +84,11 @@ export async function getStoreDashboardData(storeId: string): Promise<StoreDashb
   const periodStart = new Date(now - PERIOD_DAYS * DAY_MS);
   const previousStart = new Date(now - 2 * PERIOD_DAYS * DAY_MS);
 
-  const [ordersRes, openRes, sharesRes] = await Promise.all([
+  const [ordersRes, openRes, sharesRes, allTimeRes, rateRes] = await Promise.all([
     supabase
       .from('orders')
       .select(
-        'id, status, created_at, items:order_items(quantity, unit_price, product_id, product:products(name))'
+        'id, status, created_at, commission_amount, items:order_items(quantity, unit_price, product_id, product:products(name))'
       )
       .eq('store_id', storeId)
       .gte('created_at', previousStart.toISOString())
@@ -90,7 +103,23 @@ export async function getStoreDashboardData(storeId: string): Promise<StoreDashb
       .select('quantity')
       .eq('store_id', storeId)
       .gte('created_at', periodStart.toISOString()),
+    supabase
+      .from('orders')
+      .select('total_amount, delivery_fee, commission_amount')
+      .eq('store_id', storeId)
+      .eq('status', 'completed'),
+    supabase.from('platform_settings').select('commission_rate').maybeSingle(),
   ]);
+
+  const allTime = allTimeRes.data ?? [];
+  const commission: StoreCommission = {
+    rate: Number(rateRes.data?.commission_rate ?? 0.1),
+    allTimeCommission: allTime.reduce((sum, o) => sum + Number(o.commission_amount ?? 0), 0),
+    allTimeRevenue: allTime.reduce(
+      (sum, o) => sum + Number(o.total_amount) - Number(o.delivery_fee),
+      0
+    ),
+  };
 
   const orders = (ordersRes.data ?? []).map((o) => ({ ...o, items: o.items ?? [] }));
   const current = orders.filter((o) => new Date(o.created_at) >= periodStart);
@@ -141,5 +170,6 @@ export async function getStoreDashboardData(storeId: string): Promise<StoreDashb
     topProducts,
     openOrders: open,
     sharedQuantity: (sharesRes.data ?? []).reduce((sum, s) => sum + s.quantity, 0),
+    commission,
   };
 }

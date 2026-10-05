@@ -8,6 +8,7 @@ import {
   Leaf,
   Package,
   PackageX,
+  Percent,
   Plus,
   ShieldAlert,
   ShieldCheck,
@@ -26,6 +27,10 @@ export const dynamic = 'force-dynamic';
 
 function formatBaht(n: number): string {
   return `฿${n.toLocaleString('th-TH', { maximumFractionDigits: 0 })}`;
+}
+
+function formatBahtExact(n: number): string {
+  return `฿${n.toLocaleString('th-TH', { maximumFractionDigits: 2 })}`;
 }
 
 /** % change vs the previous period, or null when there is no baseline. */
@@ -61,6 +66,7 @@ export default async function StoreOverviewPage() {
     current.totalOrders > 0 ? Math.round((current.cancelledOrders / current.totalOrders) * 100) : 0;
   const foodSaved = current.itemsSold + dashboard.sharedQuantity;
   const maxTopQty = Math.max(...dashboard.topProducts.map((p) => p.quantity), 1);
+  const commissionPercent = Math.round(dashboard.commission.rate * 10000) / 100;
 
   const todo = [
     {
@@ -208,6 +214,55 @@ export default async function StoreOverviewPage() {
               >
                 {rating.count} รีวิวทั้งหมด
               </Link>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+      {/* Platform commission */}
+      <section className="space-y-2">
+        <SectionTitle subtitle="ระบบหักอัตโนมัติจากยอดขายสินค้าของออเดอร์ที่สำเร็จ ไม่รวมค่าจัดส่ง">
+          ค่าคอมมิชชันแพลตฟอร์ม
+        </SectionTitle>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <Card>
+            <CardContent className="p-4">
+              <p className="flex items-center gap-1 text-xs font-medium text-neutral-500">
+                <Percent className="h-3.5 w-3.5" /> อัตราที่หัก
+              </p>
+              <p className="mt-1 text-2xl font-extrabold text-neutral-900">{commissionPercent}%</p>
+              <p className="mt-1 text-xs text-neutral-500">ของยอดขายสินค้าแต่ละออเดอร์</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-xs font-medium text-neutral-500">ถูกหัก 30 วันล่าสุด</p>
+              <p className="mt-1 text-2xl font-extrabold text-orange-600">
+                −{formatBahtExact(current.commission)}
+              </p>
+              <p className="mt-1 text-xs text-neutral-500">
+                จากยอดขาย {formatBahtExact(current.revenue)}
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-xs font-medium text-neutral-500">ถูกหักทั้งหมด</p>
+              <p className="mt-1 text-2xl font-extrabold text-orange-600">
+                −{formatBahtExact(dashboard.commission.allTimeCommission)}
+              </p>
+              <p className="mt-1 text-xs text-neutral-500">
+                จากยอดขายสะสม {formatBahtExact(dashboard.commission.allTimeRevenue)}
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-xs font-medium text-neutral-500">รายได้สุทธิ 30 วันล่าสุด</p>
+              <p className="mt-1 text-2xl font-extrabold text-forest-800">
+                {formatBahtExact(current.revenue - current.commission)}
+              </p>
+              <p className="mt-1 text-xs text-neutral-500">ยอดขาย − ค่าคอมมิชชัน</p>
             </CardContent>
           </Card>
         </div>

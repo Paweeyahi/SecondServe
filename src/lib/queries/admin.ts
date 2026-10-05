@@ -25,8 +25,25 @@ export interface StoreSalesRow {
   store_id: string;
   store_name: string;
   quantity_sold: number;
+  /** Completed orders. */
+  orders: number;
+  /** Item value of completed orders (delivery fees excluded). */
   revenue: number;
+  /** Commission deducted from those orders, at each order's own rate. */
   commission: number;
+  /** revenue - commission. */
+  net: number;
+}
+
+export interface CommissionSummary {
+  /** Current platform rate, 0.10 = 10%. */
+  rate: number;
+  completed_orders: number;
+  gross: number;
+  commission_total: number;
+  net_to_stores: number;
+  commission_30d: number;
+  gross_30d: number;
 }
 
 /** Every user (incl. email from auth.users) via admin_list_users() -- admin-only RPC. */
@@ -74,7 +91,32 @@ export async function getStoreSalesReport(): Promise<StoreSalesRow[]> {
   const supabase = createClient();
   const { data, error } = await supabase.rpc('admin_store_sales_report');
   if (error || !data) return [];
-  return data as unknown as StoreSalesRow[];
+  // numeric columns arrive as JSON numbers or strings depending on scale
+  return (data as unknown as StoreSalesRow[]).map((r) => ({
+    ...r,
+    orders: Number(r.orders ?? 0),
+    revenue: Number(r.revenue),
+    commission: Number(r.commission),
+    net: Number(r.net ?? Number(r.revenue) - Number(r.commission)),
+  }));
+}
+
+/** Platform-wide commission totals via admin_commission_summary(). */
+export async function getCommissionSummary(): Promise<CommissionSummary | null> {
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc('admin_commission_summary');
+  if (error || !data) return null;
+  const d = data as Record<string, number | string | null>;
+  const num = (k: string) => Number(d[k] ?? 0);
+  return {
+    rate: num('rate'),
+    completed_orders: num('completed_orders'),
+    gross: num('gross'),
+    commission_total: num('commission_total'),
+    net_to_stores: num('net_to_stores'),
+    commission_30d: num('commission_30d'),
+    gross_30d: num('gross_30d'),
+  };
 }
 
 export interface DonationOverview {

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { firstIssueMessage } from '@/lib/validation/auth';
 import { FoundationSchema, type FoundationInput } from '@/lib/validation/foundation';
+import { z } from 'zod';
 
 export interface AdminActionResult {
   error?: string;
@@ -16,6 +17,7 @@ function friendlyAdminError(message: string): string {
     NOT_FOUND: 'ไม่พบข้อมูลนี้',
     CANNOT_SUSPEND_SELF: 'ไม่สามารถระงับบัญชีของตัวเองได้',
     NAME_REQUIRED: 'กรุณากรอกชื่อมูลนิธิ',
+    BAD_RATE: 'อัตราค่าคอมมิชชันต้องอยู่ระหว่าง 0–50%',
   };
   return map[message] ?? `ดำเนินการไม่สำเร็จ: ${message}`;
 }
@@ -90,5 +92,30 @@ export async function saveFoundation(input: FoundationInput): Promise<AdminActio
   revalidatePath('/dashboard/admin/foundations');
   revalidatePath('/dashboard/store/products');
   revalidatePath('/shares');
+  return { success: true };
+}
+
+const CommissionPercentSchema = z.coerce
+  .number({ invalid_type_error: 'กรุณากรอกตัวเลข' })
+  .min(0, 'อัตราค่าคอมมิชชันต้องไม่ติดลบ')
+  .max(50, 'อัตราค่าคอมมิชชันต้องไม่เกิน 50%');
+
+/**
+ * Change the platform commission rate (entered as a percent). Only affects
+ * orders placed after the change -- each order keeps the rate it was placed at.
+ */
+export async function setCommissionRate(percent: number): Promise<AdminActionResult> {
+  const parsed = CommissionPercentSchema.safeParse(percent);
+  if (!parsed.success) return { error: firstIssueMessage(parsed.error) };
+
+  const supabase = createClient();
+  const { error } = await supabase.rpc('admin_set_commission_rate', {
+    p_rate: Math.round(parsed.data * 100) / 10000,
+  });
+  if (error) return { error: friendlyAdminError(error.message) };
+
+  revalidatePath('/dashboard/admin');
+  revalidatePath('/dashboard/admin/users');
+  revalidatePath('/dashboard/store');
   return { success: true };
 }

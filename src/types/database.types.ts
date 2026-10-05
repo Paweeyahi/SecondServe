@@ -159,6 +159,10 @@ export interface Database {
           total_amount: number;
           status: 'pending' | 'confirmed' | 'ready' | 'rider_assigned' | 'picked_up' | 'delivering' | 'completed' | 'cancelled';
           created_at: string;
+          /** Platform rate snapshotted at checkout (0.10 = 10%). */
+          commission_rate: number;
+          /** Generated: (total_amount - delivery_fee) * commission_rate. */
+          commission_amount: number;
         };
         Insert: {
           id?: string;
@@ -171,6 +175,7 @@ export interface Database {
           total_amount: number;
           status?: 'pending' | 'confirmed' | 'ready' | 'rider_assigned' | 'picked_up' | 'delivering' | 'completed' | 'cancelled';
           created_at?: string;
+          commission_rate?: number;
         };
         Update: {
           id?: string;
@@ -183,6 +188,24 @@ export interface Database {
           total_amount?: number;
           status?: 'pending' | 'confirmed' | 'ready' | 'rider_assigned' | 'picked_up' | 'delivering' | 'completed' | 'cancelled';
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      platform_settings: {
+        Row: {
+          id: boolean;
+          commission_rate: number;
+          updated_at: string;
+        };
+        Insert: {
+          id?: boolean;
+          commission_rate?: number;
+          updated_at?: string;
+        };
+        Update: {
+          id?: boolean;
+          commission_rate?: number;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -462,6 +485,14 @@ export interface Database {
         Returns: undefined;
       };
       admin_platform_metrics: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
+      admin_set_commission_rate: {
+        Args: { p_rate: number };
+        Returns: undefined;
+      };
+      admin_commission_summary: {
         Args: Record<string, never>;
         Returns: Json;
       };
